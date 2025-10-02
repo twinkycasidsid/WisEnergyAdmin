@@ -1,151 +1,43 @@
 import { jsPDF } from "jspdf"; // For PDF export
-import "jspdf-autotable"; // autoTable plugin for tables in PDFs
+import autoTable from "jspdf-autotable";
 import PizZip from "pizzip"; // For DOCX export
 import Docxtemplater from "docxtemplater"; // For DOCX export
+import html2pdf from "html2pdf.js";
 
 // Helper function to compute summary statistics
 const getSummaryStats = (data) => {
-  if (
-    !data ||
-    !Array.isArray(data.users) ||
-    !Array.isArray(data.devices) ||
-    !Array.isArray(data.reviews) ||
-    !Array.isArray(data.feedback)
-  ) {
-    throw new Error("Invalid or missing data arrays");
-  }
-
   return {
-    reportDateTime: new Date().toISOString().split("T")[0], // e.g., "2025-09-27"
-    totalUsers: data.users.length,
+    reportDateTime: new Date().toISOString().split("T")[0],
+    totalUsers: data.users?.length || 0,
     totalDevices: (data.devices || []).filter(
       (device) => (device.status || "").toLowerCase() === "paired"
     ).length,
     averageRating:
-      data.reviews.length > 0
+      data.reviews?.length > 0
         ? (
-            data.reviews.reduce(
-              (acc, review) => acc + (review.rating || 0),
-              0
-            ) / data.reviews.length
-          ).toFixed(2)
+          data.reviews.reduce((acc, r) => acc + (r.rating || 0), 0) /
+          data.reviews.length
+        ).toFixed(2)
         : "N/A",
-    totalFeedback: data.feedback.length,
+    totalFeedback: data.feedback?.length || 0,
   };
 };
 
 // PDF Export using jsPDF
-export const exportToPDF = (data) => {
-  try {
-    // Validate input data
-    if (
-      !data ||
-      !Array.isArray(data.users) ||
-      !Array.isArray(data.devices) ||
-      !Array.isArray(data.feedback)
-    ) {
-      throw new Error("Invalid or missing data arrays");
-    }
+export const exportToPDF = () => {
+  const element = document.getElementById("report-template");
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
-    const doc = new jsPDF();
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const opt = {
+    margin: 0.5,
+    filename: `wisenergy_report_${timestamp}.pdf`,
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
+    pagebreak: { mode: ["avoid-all", "css", "legacy"] }, // 👈 important
+  };
 
-    // Set up PDF font and size
-    doc.setFont("helvetica");
-    doc.setFontSize(12);
-
-    // Title of the report
-    doc.text("WisEnergy Analytics Report", 20, 20);
-
-    // Summary statistics
-    const stats = getSummaryStats(data);
-    doc.text(`Summary as of: ${stats.reportDateTime}`, 20, 30);
-    doc.text(`Total Users: ${stats.totalUsers}`, 20, 40);
-    doc.text(`Total Devices: ${stats.totalDevices}`, 20, 50);
-    doc.text(`Average Rating: ${stats.averageRating}`, 20, 60);
-    doc.text(`Total Feedback: ${stats.totalFeedback}`, 20, 70);
-
-    // Users Table
-    doc.autoTable({
-      startY: 80,
-      head: [
-        [
-          "ID",
-          "First Name",
-          "Last Name",
-          "Email",
-          "Location",
-          "Role",
-          "Date Created",
-          "Date Modified",
-        ],
-      ],
-      body: data.users.map((user) => [
-        user.uid || "N/A",
-        user.first_name || "N/A",
-        user.last_name || "N/A",
-        user.email || "N/A",
-        user.location || "N/A",
-        user.role || "N/A",
-        user.created_at || "N/A",
-        user.dateModified || "N/A",
-      ]),
-      theme: "striped",
-      headStyles: { fillColor: [22, 160, 133] },
-      styles: { fontSize: 10 },
-    });
-
-    // Devices Table
-    doc.autoTable({
-      startY: doc.lastAutoTable.finalY + 10,
-      head: [
-        [
-          "ID",
-          "Device Name",
-          "Owner",
-          "Pairing Code",
-          "Paired At",
-          "Registered At",
-          "Status",
-        ],
-      ],
-      body: data.devices.map((device) => [
-        device.id || "N/A",
-        device.deviceName || "N/A",
-        device.owner || "N/A",
-        device.pairingCode || "N/A",
-        device.pairedAt || "N/A",
-        device.registeredAt || "N/A",
-        device.status || "N/A",
-      ]),
-      theme: "striped",
-      headStyles: { fillColor: [22, 160, 133] },
-      styles: { fontSize: 10 },
-    });
-
-    // Feedback Table
-    doc.autoTable({
-      startY: doc.lastAutoTable.finalY + 10,
-      head: [["ID", "Type", "Message", "Email", "Date Created", "Status"]],
-      body: data.feedback.map((feedback) => [
-        feedback.id || "N/A",
-        feedback.type || "N/A",
-        feedback.message || "N/A",
-        feedback.email || "N/A",
-        feedback.dateCreated || "N/A",
-        feedback.status || "N/A",
-      ]),
-      theme: "striped",
-      headStyles: { fillColor: [22, 160, 133] },
-      styles: { fontSize: 10 },
-    });
-
-    // Save the generated PDF with a unique filename
-    doc.save(`wisenergy_analytics_report_${timestamp}.pdf`);
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-    throw new Error(`Failed to generate PDF report: ${error.message}`);
-  }
+  html2pdf().set(opt).from(element).save();
 };
 
 // DOCX Export using docxtemplater
@@ -200,27 +92,26 @@ export const exportToDOCX = async (data) => {
         )
     ) {
       throw new Error(
-        `Fetched file is not a valid DOCX file (Content-Type: ${
-          response.headers.get("Content-Type") || "none"
+        `Fetched file is not a valid DOCX file (Content-Type: ${response.headers.get("Content-Type") || "none"
         })`
       );
     }
 
     // Get arrayBuffer
     const arrayBuffer = await response.arrayBuffer();
-    console.log("ArrayBuffer size:", arrayBuffer.byteLength);
+    // console.log("ArrayBuffer size:", arrayBuffer.byteLength);
     if (arrayBuffer.byteLength === 0) {
       throw new Error("Fetched DOCX template is empty");
     }
 
     // Log first few bytes of arrayBuffer to verify ZIP header
     const uint8Array = new Uint8Array(arrayBuffer.slice(0, 4));
-    console.log(
-      "ArrayBuffer first bytes:",
-      Array.from(uint8Array)
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("")
-    );
+    // console.log(
+    //   "ArrayBuffer first bytes:",
+    //   Array.from(uint8Array)
+    //     .map((b) => b.toString(16).padStart(2, "0"))
+    //     .join("")
+    // );
 
     // Load the template into PizZip
     let zip;

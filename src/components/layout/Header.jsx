@@ -4,6 +4,11 @@ import { useSearch } from "../SearchContext";
 function Header({ onMenuClick }) {
   const { searchQuery, setSearchQuery } = useSearch();
 
+  // ✅ Get user info from localStorage
+  const user = JSON.parse(localStorage.getItem("user")) || {};
+  const displayName = user.displayName || "Admin User";
+  const role = user.role || "Admin";
+
   return (
     <header className="flex items-center bg-white px-8 py-4 w-full">
       {/* Hamburger menu icon */}
@@ -17,6 +22,7 @@ function Header({ onMenuClick }) {
           <rect x="5" y="18" width="18" height="2" rx="1" fill="#4B5563" />
         </svg>
       </button>
+
       {/* 🔍 Search bar */}
       <div className="relative w-full max-w-xl">
         <svg
@@ -36,13 +42,14 @@ function Header({ onMenuClick }) {
           className="w-full pl-10 pr-4 py-2 rounded-full bg-gray-50 border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#43A866]/30"
         />
       </div>
+
       {/* User profile section */}
       <div className="flex items-center gap-3 ml-auto">
         <div className="text-right">
           <div className="font-semibold text-gray-800 text-sm">
-            Twinky Casidsid
+            {displayName}
           </div>
-          <div className="text-xs text-gray-500">Admin</div>
+          <div className="text-xs text-gray-500">{role}</div>
         </div>
         <img
           src="/twinky.jpg"

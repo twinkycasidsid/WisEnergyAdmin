@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Filter, RotateCcw } from "lucide-react";
-import { fetchAllFeedbacks } from "../../../services/apiService";
+import { fetchAllFeedbacks, updateFeedbackStatus } from "../../../services/apiService";
 import { useSearch } from "../SearchContext";
 
 function Feedback() {
@@ -12,6 +12,14 @@ function Feedback() {
   const [dateFilter, setDateFilter] = useState("");
   const [dateCreatedFilter, setDateCreatedFilter] = useState("");
   const [dateModifiedFilter, setDateModifiedFilter] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // default rows per page
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentFeedback = filteredFeedback.slice(startIndex, endIndex);
+
+  const totalPages = Math.ceil(filteredFeedback.length / itemsPerPage);
 
   const statusColors = {
     Open: "bg-blue-100 text-blue-600",
@@ -95,18 +103,23 @@ function Feedback() {
   };
 
   // Handle status change
-  const handleStatusChange = (id, newStatus) => {
-    setFeedback((prev) =>
-      prev.map((f) =>
-        f.id === id
-          ? {
+  const handleStatusChange = async (id, newStatus) => {
+    const result = await updateFeedbackStatus(id, newStatus);
+    if (result.success) {
+      setFeedback((prev) =>
+        prev.map((f) =>
+          f.id === id
+            ? {
               ...f,
               status: newStatus,
               date_modified: new Date().toISOString().split("T")[0],
             }
-          : f
-      )
-    );
+            : f
+        )
+      );
+    } else {
+      console.error("Failed to update feedback status:", result.message);
+    }
   };
 
   return (
@@ -210,7 +223,7 @@ function Feedback() {
             </tr>
           </thead>
           <tbody>
-            {filteredFeedback?.map((f) => (
+            {currentFeedback?.map((f) => (
               <tr
                 key={f.id}
                 className="border-b hover:bg-gray-50 transition-colors"
@@ -227,9 +240,8 @@ function Feedback() {
                   <select
                     value={f.status}
                     onChange={(e) => handleStatusChange(f.id, e.target.value)}
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      statusColors[f.status]
-                    }`}
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[f.status]
+                      }`}
                   >
                     <option value="Open">Open</option>
                     <option value="Resolved">Resolved</option>
@@ -246,15 +258,45 @@ function Feedback() {
       {/* Pagination */}
       <div className="flex justify-between items-center text-sm text-gray-600 mt-4">
         <p>
-          Showing 1-{filteredFeedback?.length} of {filteredFeedback?.length}
+          Showing {startIndex + 1}-
+          {Math.min(endIndex, filteredFeedback.length)} of {filteredFeedback.length}
         </p>
-        <div className="flex gap-2">
-          <button className="px-3 py-1 border rounded hover:bg-gray-100">
+
+        <div className="flex items-center gap-2">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+            className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
+          >
             &lt;
           </button>
-          <button className="px-3 py-1 border rounded hover:bg-gray-100">
+          <span>
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
+          >
             &gt;
           </button>
+        </div>
+
+        {/* Rows per page */}
+        <div className="ml-4">
+          <label className="mr-2">Rows per page:</label>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => {
+              setItemsPerPage(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+            className="border rounded px-2 py-1"
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+          </select>
         </div>
       </div>
     </div>

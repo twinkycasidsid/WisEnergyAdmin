@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Filter, RotateCcw, Plus, Edit2, Trash2 } from "lucide-react";
 import UserModal from "./UserModal";
-import { fetchAllUsers } from "../../../services/apiService";
+import { addNewUser, fetchAllUsers, updateUser } from "../../../services/apiService";
 import { useSearch } from "../SearchContext";
 import ConfirmModal from "./ConfirmModal";
 
@@ -18,6 +18,16 @@ function Users() {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+
+  // Slice the filtered users to show only the current page
+  const currentUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // Total number of pages
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
   // Filter states
   const [locationFilter, setLocationFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
@@ -32,6 +42,7 @@ function Users() {
   useEffect(() => {
     const fetchUsers = async () => {
       const result = await fetchAllUsers();
+
       setUsers(result);
       setFilteredUsers(result); // Initialize filtered users with all users
     };
@@ -104,28 +115,40 @@ function Users() {
       <UserModal
         isOpen={showUserModal}
         onClose={() => setShowUserModal(false)}
-        onSubmit={(formData) => {
+        onSubmit={async (formData) => {
           if (editUser) {
-            setUsers((prev) =>
-              prev.map((u) =>
-                u.uid === editUser.uid
-                  ? {
-                      ...u,
-                      ...formData,
-                      modified: new Date().toISOString().split("T")[0],
-                    }
-                  : u
-              )
-            );
-          } else {
-            const newUser = {
-              uid: String(users.length + 1).padStart(5, "0"),
+            // 🔹 Call API to update existing user
+            const result = await updateUser(editUser.uid, {
               ...formData,
-              role: newRole.toLowerCase(), // ensure role is lowercase
-              created_at: new Date().toISOString().split("T")[0],
-            };
-            setUsers((prev) => [newUser, ...prev]);
+              role: newRole.toLowerCase(),
+            });
+
+            if (result.success) {
+              // update local state so UI reflects changes
+              setUsers((prev) =>
+                prev.map((u) =>
+                  u.uid === editUser.uid ? { ...u, ...formData, role: newRole.toLowerCase() } : u
+                )
+              );
+            } else {
+              console.error("❌ Failed to update user:", result.message);
+            }
+          } else {
+            // 🔹 Creating new user
+            console.log(formData);
+
+            const result = await addNewUser({
+              ...formData,
+            });
+            console.log(result);
+
+            if (result.success) {
+              setUsers((prev) => [result.data, ...prev]);
+            } else {
+              console.error("❌ Create failed:", result.message);
+            }
           }
+
           setShowUserModal(false);
         }}
         initialData={editUser || {}}
@@ -265,11 +288,12 @@ function Users() {
                 <th className="p-3">Role</th>
                 <th className="p-3">Date Created</th>
                 <th className="p-3">Date Modified</th>
+                <th className="p-3">Verified</th>
                 <th className="p-3">Action</th>
               </tr>
             </thead>
             <tbody>
-              {filteredUsers?.map((u) => (
+              {currentUsers?.map((u) => (
                 <tr
                   key={u.uid}
                   className="border-b hover:bg-gray-50 transition-colors"
@@ -281,7 +305,8 @@ function Users() {
                   <td className="p-3">{u.location}</td>
                   <td className="p-3">{u.role}</td>
                   <td className="p-3">{u.created_at?.split("T")[0]}</td>
-                  <td className="p-3">{u.modified}</td>
+                  <td className="p-3">{u.date_modified}</td>
+                  <td className="p-3">{u.verified || "false"}</td>
                   <td className="p-3 flex gap-2">
                     <button
                       onClick={() => {
@@ -322,6 +347,71 @@ function Users() {
             message={`Are you sure you want to delete ${deleteTarget?.first_name} ${deleteTarget?.last_name}?`}
           />
         </div>
+        {/* Pagination Controls */}
+        <div className="flex justify-between items-center p-4">
+          {/* Rows per page */}
+          <div>
+            <label className="mr-2 text-sm">Rows per page:</label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1); // reset to first page
+              }}
+              className="border rounded px-2 py-1 text-sm"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+            </select>
+          </div>
+
+          {/* Pagination buttons */}
+          <div className="flex justify-between items-center text-sm text-gray-600 mt-4">
+            <p>
+              Showing {startIndex + 1}-
+              {Math.min(endIndex, currentUsers.length)} of {currentUsers.length}
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
+              >
+                &lt;
+              </button>
+              <span>
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
+              >
+                &gt;
+              </button>
+            </div>
+
+            {/* Rows per page selector */}
+            <div className="ml-4">
+              <label className="mr-2">Rows per page:</label>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="border rounded px-2 py-1"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
       </div>
     </>
   );

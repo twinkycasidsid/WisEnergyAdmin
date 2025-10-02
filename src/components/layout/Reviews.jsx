@@ -8,6 +8,15 @@ function Reviews() {
   const [filteredReviews, setFilteredReviews] = useState([]);
   const [ratingFilter, setRatingFilter] = useState(""); // Filter for rating
   const [dateFilter, setDateFilter] = useState(""); // Filter for date
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // default 10 rows per page
+  // Pagination calculation
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentReviews = filteredReviews.slice(startIndex, endIndex);
+
+  const totalPages = Math.ceil(filteredReviews.length / itemsPerPage);
+
   const renderStars = (count) => {
     const filled = "★".repeat(count);
     const empty = "☆".repeat(5 - count);
@@ -138,7 +147,7 @@ function Reviews() {
             </tr>
           </thead>
           <tbody>
-            {filteredReviews?.map((r) => (
+            {currentReviews?.map((r) => (
               <tr
                 key={r.id}
                 className="border-b hover:bg-gray-50 transition-colors"
@@ -157,15 +166,45 @@ function Reviews() {
       {/* Pagination */}
       <div className="flex justify-between items-center text-sm text-gray-600 mt-4">
         <p>
-          Showing 1-{filteredReviews?.length} of {filteredReviews?.length}
+          Showing {startIndex + 1}-
+          {Math.min(endIndex, filteredReviews.length)} of {filteredReviews.length}
         </p>
-        <div className="flex gap-2">
-          <button className="px-3 py-1 border rounded hover:bg-gray-100">
+
+        <div className="flex items-center gap-2">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+            className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
+          >
             &lt;
           </button>
-          <button className="px-3 py-1 border rounded hover:bg-gray-100">
+          <span>
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
+          >
             &gt;
           </button>
+        </div>
+
+        {/* Rows per page selector */}
+        <div className="ml-4">
+          <label className="mr-2">Rows per page:</label>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => {
+              setItemsPerPage(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+            className="border rounded px-2 py-1"
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+          </select>
         </div>
       </div>
     </div>

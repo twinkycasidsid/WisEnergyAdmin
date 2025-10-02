@@ -8,6 +8,7 @@ import ForgotPassword from "./components/layout/ForgotPassword";
 import CodeVerification from "./components/layout/CodeVerification";
 import ResetPassword from "./components/layout/ResetPassword";
 import ResetSuccess from "./components/layout/ResetSuccess";
+import ProtectedRoute from "./components/ProtectedRoutes";
 
 function App() {
   return (
@@ -21,8 +22,15 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/reset-success" element={<ResetSuccess />} />
 
-          {/* Dashboard */}
-          <Route path="/*" element={<DashboardLayout />} />
+          {/* Dashboard (protected) */}
+          <Route
+            path="/*"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Router>
     </SearchProvider>

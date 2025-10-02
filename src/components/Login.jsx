@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { login } from "../../services/apiService";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -8,12 +9,18 @@ function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (email === "admin@gmail.com" && password === "admin123") {
+
+    const result = await login(email, password);
+
+    if (result.success) {
+      // ✅ Store token in localStorage (or context)
+      localStorage.setItem("token", result.data.idToken);
+      localStorage.setItem("user", JSON.stringify(result.data.user));
       navigate("/dashboard");
     } else {
-      setError("Invalid credentials");
+      setError(result.message);
     }
   };
 
