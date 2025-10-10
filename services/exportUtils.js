@@ -1,8 +1,11 @@
+// exportUtils.js
 import { jsPDF } from "jspdf"; // For PDF export
 import autoTable from "jspdf-autotable";
 import PizZip from "pizzip"; // For DOCX export
 import Docxtemplater from "docxtemplater"; // For DOCX export
 import html2pdf from "html2pdf.js";
+import headerImg from "/header.png";
+import footerImg from "/footer.png";
 
 // Helper function to compute summary statistics
 const getSummaryStats = (data) => {
@@ -15,29 +18,71 @@ const getSummaryStats = (data) => {
     averageRating:
       data.reviews?.length > 0
         ? (
-          data.reviews.reduce((acc, r) => acc + (r.rating || 0), 0) /
-          data.reviews.length
-        ).toFixed(2)
+            data.reviews.reduce((acc, r) => acc + (r.rating || 0), 0) /
+            data.reviews.length
+          ).toFixed(2)
         : "N/A",
     totalFeedback: data.feedback?.length || 0,
   };
 };
 
-// PDF Export using jsPDF
-export const exportToPDF = () => {
+// PDF Export using html2pdf and jsPDF
+export const exportToPDF = async () => {
   const element = document.getElementById("report-template");
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
-  const opt = {
-    margin: 0.5,
-    filename: `wisenergy_report_${timestamp}.pdf`,
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2 },
-    jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
-    pagebreak: { mode: ["avoid-all", "css", "legacy"] }, // 👈 important
-  };
+  const worker = html2pdf()
+    .set({
+      margin: 0,
+      filename: `wisenergy_report_${timestamp}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["avoid-all", "css", "legacy"] },
+    })
+    .from(element);
 
-  html2pdf().set(opt).from(element).save();
+  const pdf = await worker.toPdf().get("pdf");
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  // Load both images first to get natural sizes
+  const loadImage = (src) =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+
+  const header = await loadImage(headerImg);
+  const footer = await loadImage(footerImg);
+
+  const headerRatio = header.height / header.width;
+  const footerRatio = footer.height / footer.width;
+
+  const headerHeight = pageWidth * headerRatio;
+  const footerHeight = pageWidth * footerRatio;
+
+  const pageCount = pdf.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    pdf.setPage(i);
+
+    // Header at top
+    pdf.addImage(headerImg, "PNG", 0, 0, pageWidth, headerHeight);
+
+    // Footer at bottom
+    pdf.addImage(
+      footerImg,
+      "PNG",
+      0,
+      pageHeight - footerHeight,
+      pageWidth,
+      footerHeight
+    );
+  }
+
+  pdf.save(`wisenergy_report_${timestamp}.pdf`);
 };
 
 // DOCX Export using docxtemplater
@@ -92,7 +137,8 @@ export const exportToDOCX = async (data) => {
         )
     ) {
       throw new Error(
-        `Fetched file is not a valid DOCX file (Content-Type: ${response.headers.get("Content-Type") || "none"
+        `Fetched file is not a valid DOCX file (Content-Type: ${
+          response.headers.get("Content-Type") || "none"
         })`
       );
     }

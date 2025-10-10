@@ -1,8 +1,8 @@
 import axios from "axios";
 
 const api = axios.create({
-  // baseURL: "https://wisenergy-backend.onrender.com",
-  baseURL: 'http://192.168.1.8:10000',
+  baseURL: "https://wisenergy-backend.onrender.com",
+  // baseURL: 'http://192.168.1.8:10000',
   timeout: 5000,
   headers: {
     "Content-Type": "application/json",
@@ -40,7 +40,7 @@ export const addNewUser = async (userData) => {
       message: error.response?.data?.detail || "Failed to create user",
     };
   }
-}
+};
 
 export const updateUser = async (userId, userData) => {
   try {
@@ -49,7 +49,7 @@ export const updateUser = async (userId, userData) => {
   } catch (error) {
     return {
       success: false,
-      message: error.response?.data?.detail || "Failed to update user"
+      message: error.response?.data?.detail || "Failed to update user",
     };
   }
 };

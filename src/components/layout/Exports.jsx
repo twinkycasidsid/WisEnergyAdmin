@@ -39,8 +39,6 @@ function Exports() {
       setReviews(result);
     };
     fetchReviews();
-
-
   }, []);
 
   const handleExport = () => {
@@ -52,35 +50,42 @@ function Exports() {
   };
 
   return (
-    <div className="container p-6">
-      <h1 className="text-2xl font-bold mb-4">Export Reports</h1>
-      <div className="mb-4">
-        <label htmlFor="fileType" className="mr-2">
-          Choose file type:
-        </label>
-        <select
-          id="fileType"
-          value={fileType}
-          onChange={(e) => setFileType(e.target.value)}
-          className="p-2 border rounded"
-        >
-          <option value="pdf">PDF</option>
-          <option value="docx">DOCX</option>
-        </select>
-      </div>
+   <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-xl p-8 mt-10 border border-gray-100">
+  <h1 className="text-2xl font-bold text-gray-800 mb-8">
+    Export Reports
+  </h1>
 
-      {/* Report Template (hidden in UI but needed for export) */}
-      <div className="hidden">
-        <ReportTemplate data={{ users, devices, feedback, reviews }} />
-      </div>
+  <div className="mb-8">
+    <label
+      htmlFor="fileType"
+      className="block text-gray-700 font-medium mb-2"
+    >
+      Choose file type
+    </label>
+    <select
+      id="fileType"
+      value={fileType}
+      onChange={(e) => setFileType(e.target.value)}
+      className="w-full p-3 border border-gray-300 rounded-md bg-gray-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+    >
+      <option value="pdf">PDF</option>
+      <option value="docx">DOCX</option>
+    </select>
+  </div>
 
-      <button
-        onClick={handleExport}
-        className="px-4 py-2 bg-blue-500 text-white rounded"
-      >
-        Export
-      </button>
-    </div>
+  {/* Hidden report template */}
+  <div className="hidden">
+    <ReportTemplate data={{ users, devices, feedback, reviews }} />
+  </div>
+
+  <button
+    onClick={handleExport}
+    className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md shadow-sm transition-all duration-200"
+  >
+    Export
+  </button>
+</div>
+
   );
 }
 
