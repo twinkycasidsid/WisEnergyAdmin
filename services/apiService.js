@@ -1,8 +1,8 @@
 import axios from "axios";
 
 const api = axios.create({
-  // baseURL: "https://wisenergy-backend.onrender.com",
-  baseURL: 'http://192.168.1.8:10000',
+  baseURL: "https://wisenergy-backend.onrender.com",
+  // baseURL: 'http://192.168.1.8:10000',
   timeout: 5000,
   headers: {
     "Content-Type": "application/json",
@@ -99,6 +99,45 @@ export const updateFeedbackStatus = async (id, newStatus) => {
       success: false,
       message:
         error.response?.data?.detail || "Failed to update feedback status",
+    };
+  }
+};
+
+export const fetchAllRates = async () => {
+  try {
+    const response = await api.get("/rates");
+    return response.data?.data || [];
+  } catch (error) {
+    console.error("Error fetching electricity rates:", error);
+    return [];
+  }
+};
+
+// 🟢 Add or update rate
+export const addOrUpdateRate = async (rateData) => {
+  try {
+    const response = await api.post("/rates", rateData);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Error adding/updating rate:", error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || "Failed to add or update rate.",
+    };
+  }
+};
+
+// 🔴 Delete rate
+export const deleteRate = async (city, year, month) => {
+  try {
+    const encodedCity = encodeURIComponent(city);
+    const response = await api.delete(`/rates/${encodedCity}/${year}/${month}`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Error deleting rate:", error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || "Failed to delete rate.",
     };
   }
 };
