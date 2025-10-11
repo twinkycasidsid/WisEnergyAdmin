@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Filter, RotateCcw, Plus, Edit2, Trash2 } from "lucide-react";
 import UserModal from "./UserModal";
-import { addNewUser, fetchAllUsers, updateUser } from "../../../services/apiService";
+import {
+  addNewUser,
+  fetchAllUsers,
+  updateUser,
+} from "../../../services/apiService";
 import { useSearch } from "../SearchContext";
 import ConfirmModal from "./ConfirmModal";
 
@@ -19,7 +23,7 @@ function Users() {
   const [filteredUsers, setFilteredUsers] = useState([]);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(8);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
 
@@ -128,7 +132,9 @@ function Users() {
               // update local state so UI reflects changes
               setUsers((prev) =>
                 prev.map((u) =>
-                  u.uid === editUser.uid ? { ...u, ...formData, role: newRole.toLowerCase() } : u
+                  u.uid === editUser.uid
+                    ? { ...u, ...formData, role: newRole.toLowerCase() }
+                    : u
                 )
               );
             } else {
@@ -164,18 +170,20 @@ function Users() {
 
         {/* Filter bar */}
         <div className="flex items-center justify-between rounded-lg py-3 mb-2">
-          <div className="flex items-center gap-4 bg-white rounded-lg shadow px-4 py-3">
-            <div className="flex items-center gap-2">
+          {/* Filter section with dividers */}
+          <div className="flex items-center bg-white rounded-lg shadow px-4 py-3 divide-x divide-gray-200">
+            {/* Filter By */}
+            <div className="flex items-center gap-2 px-4">
               <Filter className="w-5 h-5 text-gray-600" />
               <span className="text-sm font-medium text-gray-700">
                 Filter By
               </span>
             </div>
 
-            {/* Location Filter - Entire Area Clickable */}
+            {/* Location Filter */}
             <div
-              onClick={() => document.getElementById("locationFilter").focus()} // Focus the select element
-              className="px-2 cursor-pointer"
+              onClick={() => document.getElementById("locationFilter").focus()}
+              className="px-4 cursor-pointer"
             >
               <select
                 id="locationFilter"
@@ -185,12 +193,12 @@ function Users() {
               >
                 <option value="">Location</option>
                 <option value="Mandaue City">Mandaue City</option>
-                <option value="Lapu-Lapu City">Lapu-lapu City</option>
+                <option value="Lapu-Lapu City">Lapu-Lapu City</option>
               </select>
             </div>
 
             {/* Role Filter */}
-            <div className="px-2">
+            <div className="px-4">
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
@@ -202,11 +210,11 @@ function Users() {
               </select>
             </div>
 
-            {/* Start Date Filter with Text */}
-            <div className="px-2">
+            {/* Start Date Filter */}
+            <div className="px-4">
               <label
                 htmlFor="startDate"
-                className="font-semibold text-sm  text-gray-700 mr-2"
+                className="font-semibold text-sm text-gray-700 mr-2"
               >
                 Start Date
               </label>
@@ -219,8 +227,8 @@ function Users() {
               />
             </div>
 
-            {/* End Date Filter with Text */}
-            <div className="px-2">
+            {/* End Date Filter */}
+            <div className="px-4">
               <label
                 htmlFor="endDate"
                 className="font-semibold text-sm text-gray-700 mr-2"
@@ -237,7 +245,7 @@ function Users() {
             </div>
 
             {/* Reset Filter */}
-            <div className="px-2">
+            <div className="px-4">
               <button
                 onClick={handleResetFilters}
                 className="flex items-center gap-2 text-red-500 hover:text-red-600 text-sm font-medium"
@@ -346,71 +354,46 @@ function Users() {
             message={`Are you sure you want to delete ${deleteTarget?.first_name} ${deleteTarget?.last_name}?`}
           />
         </div>
-        {/* Pagination Controls */}
-        <div className="flex justify-between items-center p-4">
-          {/* Rows per page */}
-          <div>
-            <label className="mr-2 text-sm">Rows per page:</label>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value));
-                setCurrentPage(1); // reset to first page
-              }}
-              className="border rounded px-2 py-1 text-sm"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-            </select>
-          </div>
-
-          {/* Pagination buttons */}
+        {/* Pagination - outside white container */}
+        {filteredUsers.length > 0 && (
           <div className="flex justify-between items-center text-sm text-gray-600 mt-4">
             <p>
               Showing {startIndex + 1}-
-              {Math.min(endIndex, currentUsers.length)} of {currentUsers.length}
+              {Math.min(endIndex, filteredUsers.length)} of{" "}
+              {filteredUsers.length}
             </p>
 
             <div className="flex items-center gap-2">
               <button
-                disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
+                disabled={currentPage === 1}
+                className={`px-3 py-1 border rounded ${
+                  currentPage === 1
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:bg-gray-100"
+                }`}
               >
                 &lt;
               </button>
               <span>
-                Page {currentPage} of {totalPages}
+                Page {currentPage} of {totalPages || 1}
               </span>
               <button
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
+                onClick={() =>
+                  setCurrentPage((p) => (p < totalPages ? p + 1 : p))
+                }
+                disabled={currentPage === totalPages || totalPages === 0}
+                className={`px-3 py-1 border rounded ${
+                  currentPage === totalPages || totalPages === 0
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:bg-gray-100"
+                }`}
               >
                 &gt;
               </button>
             </div>
-
-            {/* Rows per page selector */}
-            <div className="ml-4">
-              <label className="mr-2">Rows per page:</label>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="border rounded px-2 py-1"
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-              </select>
-            </div>
           </div>
-        </div>
-
+        )}
       </div>
     </>
   );

@@ -7,16 +7,25 @@ function Devices() {
   const { searchQuery } = useSearch();
   const [devices, setDevices] = useState([]);
   const [filteredDevices, setFilteredDevices] = useState([]);
-  const [startDateFilter, setStartDateFilter] = useState(""); // Start date filter
-  const [endDateFilter, setEndDateFilter] = useState(""); // End date filter
-  const [statusFilter, setStatusFilter] = useState(""); // Status filter
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const totalPages = Math.ceil(filteredDevices.length / itemsPerPage);
+  const currentDevices = filteredDevices.slice(startIndex, endIndex);
 
   useEffect(() => {
     const fetchDevicesData = async () => {
       try {
         const response = await fetchAllDevices();
         setDevices(response);
-        setFilteredDevices(response); // Initialize filteredDevices with all devices
+        setFilteredDevices(response);
       } catch (error) {
         console.error("Error fetching devices:", error);
       }
@@ -28,12 +37,10 @@ function Devices() {
   useEffect(() => {
     let filtered = devices;
 
-    // Status filter
     if (statusFilter) {
       filtered = filtered.filter((d) => d.status === statusFilter);
     }
 
-    // Date filter
     if (startDateFilter && endDateFilter) {
       const start = new Date(startDateFilter);
       const end = new Date(endDateFilter);
@@ -43,12 +50,11 @@ function Devices() {
       });
     }
 
-    // 🔍 Global search
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (d) =>
-          d.id.toLowerCase().includes(q) ||
+          d.id?.toLowerCase().includes(q) ||
           d.device_nickname?.toLowerCase().includes(q) ||
           d.owner?.toLowerCase().includes(q) ||
           d.pairing_code?.toLowerCase().includes(q) ||
@@ -57,13 +63,22 @@ function Devices() {
     }
 
     setFilteredDevices(filtered);
+    setCurrentPage(1); // reset to first page when filters/search change
   }, [devices, statusFilter, startDateFilter, endDateFilter, searchQuery]);
 
-  // Reset all filters
   const handleResetFilters = () => {
     setStatusFilter("");
     setStartDateFilter("");
     setEndDateFilter("");
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0"); // Ensure 2 digits for month
+    const day = String(date.getDate()).padStart(2, "0"); // Ensure 2 digits for day
+    return `${year}-${month}-${day}`;
   };
 
   return (
@@ -90,7 +105,6 @@ function Devices() {
             </select>
           </div>
 
-          {/* Start Date Filter with Text */}
           <div className="px-2">
             <label
               htmlFor="startDate"
@@ -107,7 +121,6 @@ function Devices() {
             />
           </div>
 
-          {/* End Date Filter with Text */}
           <div className="px-2">
             <label
               htmlFor="endDate"
@@ -138,51 +151,81 @@ function Devices() {
 
       {/* Devices Table */}
       <div className="bg-white rounded-lg shadow overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-green-200 text-left text-gray-700">
-              <th className="p-3">ID</th>
-              <th className="p-3">Device Name</th>
-              <th className="p-3">Owner</th>
-              <th className="p-3">Pairing Code</th>
-              <th className="p-3">Paired At</th>
-              <th className="p-3">Registered At</th>
-              <th className="p-3">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredDevices.map((d, index) => (
-              <tr
-                key={d.device_id || index}
-                className="border-b hover:bg-gray-50 transition-colors"
-              >
-                <td className="p-3">{d.id}</td>
-                <td className="p-3">{d.device_nickname}</td>
-                <td className="p-3">{d.owner}</td>
-                <td className="p-3">{d.pairing_code}</td>
-                <td className="p-3">{d.paired_at?.split("T")[0]}</td>
-                <td className="p-3">{d.register_at?.split("T")[0]}</td>
-                <td className="p-3">{d.status}</td>
+        {filteredDevices.length === 0 ? (
+          <p className="text-center py-8 text-gray-500">No devices found.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-green-200 text-left text-gray-700">
+                <th className="p-3">ID</th>
+                <th className="p-3">Device Name</th>
+                <th className="p-3">Owner</th>
+                <th className="p-3">Pairing Code</th>
+                <th className="p-3">Paired At</th>
+                <th className="p-3">Registered At</th>
+                <th className="p-3">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {currentDevices.map((d, index) => (
+                <tr
+                  key={d.device_id || index}
+                  className="border-b hover:bg-gray-50 transition-colors"
+                >
+                  <td className="p-3">{d.id}</td>
+                  <td className="p-3">{d.device_nickname}</td>
+                  <td className="p-3">{d.owner}</td>
+                  <td className="p-3">{d.pairing_code}</td>
+                  {/* Format paired_at and register_at to show only the date */}
+                  <td className="p-3">{formatDate(d.paired_at)}</td>
+                  <td className="p-3">{formatDate(d.register_at)}</td>
+                  <td className="p-3 capitalize">{d.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      {/* Pagination */}
-      <div className="flex justify-between items-center text-sm text-gray-600 mt-4">
-        <p>
-          Showing 1-{filteredDevices.length} of {filteredDevices.length}
-        </p>
-        <div className="flex gap-2">
-          <button className="px-3 py-1 border rounded hover:bg-gray-100">
-            &lt;
-          </button>
-          <button className="px-3 py-1 border rounded hover:bg-gray-100">
-            &gt;
-          </button>
+      {/* Pagination - outside white container */}
+      {filteredDevices.length > 0 && (
+        <div className="flex justify-between items-center text-sm text-gray-600 mt-4">
+          <p>
+            Showing {startIndex + 1}–{Math.min(endIndex, filteredDevices.length)} of{" "}
+            {filteredDevices.length}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className={`px-3 py-1 border rounded ${
+                currentPage === 1
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-100"
+              }`}
+            >
+              &lt;
+            </button>
+            <span>
+              Page {currentPage} of {totalPages || 1}
+            </span>
+            <button
+              onClick={() =>
+                setCurrentPage((p) => (p < totalPages ? p + 1 : p))
+              }
+              disabled={currentPage === totalPages || totalPages === 0}
+              className={`px-3 py-1 border rounded ${
+                currentPage === totalPages || totalPages === 0
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-100"
+              }`}
+            >
+              &gt;
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

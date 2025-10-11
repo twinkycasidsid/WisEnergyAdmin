@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Filter, RotateCcw } from "lucide-react";
-import { fetchAllFeedbacks, updateFeedbackStatus } from "../../../services/apiService";
+import { Filter, RotateCcw, X } from "lucide-react";
+import {
+  fetchAllFeedbacks,
+  updateFeedbackStatus,
+} from "../../../services/apiService";
 import { useSearch } from "../SearchContext";
 
 function Feedback() {
@@ -10,16 +13,22 @@ function Feedback() {
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
-  const [dateCreatedFilter, setDateCreatedFilter] = useState("");
   const [dateModifiedFilter, setDateModifiedFilter] = useState("");
 
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10); // default rows per page
+  const itemsPerPage = 8;
+
+  const [selectedFeedback, setSelectedFeedback] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+
+  const truncateMessage = (text, maxLength = 40) =>
+    text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
+
+  const totalPages = Math.ceil(filteredFeedback.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentFeedback = filteredFeedback.slice(startIndex, endIndex);
-
-  const totalPages = Math.ceil(filteredFeedback.length / itemsPerPage);
 
   const statusColors = {
     Open: "bg-blue-100 text-blue-600",
@@ -28,11 +37,11 @@ function Feedback() {
     "In Progress": "bg-pink-100 text-pink-600",
   };
 
+  // Fetch all feedback
   useEffect(() => {
     const loadFeedback = async () => {
       try {
         const response = await fetchAllFeedbacks();
-        // Ensure all items have a date_modified field
         const withModified = response.map((f) => ({
           ...f,
           date_modified: f.date_modified || "",
@@ -43,34 +52,29 @@ function Feedback() {
         console.error("Error fetching feedback:", error);
       }
     };
-
     loadFeedback();
   }, []);
 
+  // Filtering logic
   useEffect(() => {
     let filtered = feedback;
 
-    if (typeFilter) {
-      filtered = filtered.filter((f) => f.type === typeFilter);
-    }
-
-    if (statusFilter) {
+    if (typeFilter) filtered = filtered.filter((f) => f.type === typeFilter);
+    if (statusFilter)
       filtered = filtered.filter((f) => f.status === statusFilter);
-    }
 
-    if (dateCreatedFilter) {
-      const filterDate = new Date(dateCreatedFilter);
+    if (dateFilter) {
+      const filterDate = new Date(dateFilter);
       filtered = filtered.filter((f) => {
         const date = new Date(f.date_created);
         return date.toDateString() === filterDate.toDateString();
       });
     }
 
-    // Date Modified filter
     if (dateModifiedFilter) {
       const filterDate = new Date(dateModifiedFilter);
       filtered = filtered.filter((f) => {
-        if (!f.date_modified) return false; // skip if not modified yet
+        if (!f.date_modified) return false;
         const date = new Date(f.date_modified);
         return date.toDateString() === filterDate.toDateString();
       });
@@ -91,18 +95,24 @@ function Feedback() {
     }
 
     setFilteredFeedback(filtered);
-  }, [feedback, typeFilter, statusFilter, dateFilter, searchQuery]);
+    setCurrentPage(1);
+  }, [
+    feedback,
+    typeFilter,
+    statusFilter,
+    dateFilter,
+    dateModifiedFilter,
+    searchQuery,
+  ]);
 
-  // Reset all filters
   const handleResetFilters = () => {
     setTypeFilter("");
     setStatusFilter("");
-    setDateCreatedFilter("");
+    setDateFilter("");
     setDateModifiedFilter("");
     setFilteredFeedback(feedback);
   };
 
-  // Handle status change
   const handleStatusChange = async (id, newStatus) => {
     const result = await updateFeedbackStatus(id, newStatus);
     if (result.success) {
@@ -110,10 +120,10 @@ function Feedback() {
         prev.map((f) =>
           f.id === id
             ? {
-              ...f,
-              status: newStatus,
-              date_modified: new Date().toISOString().split("T")[0],
-            }
+                ...f,
+                status: newStatus,
+                date_modified: new Date().toISOString().split("T")[0],
+              }
             : f
         )
       );
@@ -167,7 +177,7 @@ function Feedback() {
           <div className="px-4">
             <label
               htmlFor="dateCreated"
-              className="font-semibold text-sm  text-gray-700 mr-2"
+              className="font-semibold text-sm text-gray-700 mr-2"
             >
               Date Created
             </label>
@@ -178,6 +188,7 @@ function Feedback() {
               onChange={(e) => setDateFilter(e.target.value)}
             />
           </div>
+
           {/* Date Modified Filter */}
           <div className="px-4">
             <label
@@ -210,95 +221,170 @@ function Feedback() {
 
       {/* Feedback Table */}
       <div className="bg-white rounded-lg shadow overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-green-200 text-left text-gray-700">
-              <th className="p-3">ID</th>
-              <th className="p-3">Type</th>
-              <th className="p-3">Message</th>
-              <th className="p-3">Email</th>
-              <th className="p-3">Date Created</th>
-              <th className="p-3">Date Modified</th>
-              <th className="p-3">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentFeedback?.map((f) => (
-              <tr
-                key={f.id}
-                className="border-b hover:bg-gray-50 transition-colors"
-              >
-                <td className="p-3">{f.id}</td>
-                <td className="p-3">{f.type}</td>
-                <td className="p-3">{f.message}</td>
-                <td className="p-3">{f.email}</td>
-                <td className="p-3">{f.date_created}</td>
-                <td className="p-3">
-                  {f.date_modified ? f.date_modified : "-"}
-                </td>
-                <td className="p-3">
-                  <select
-                    value={f.status}
-                    onChange={(e) => handleStatusChange(f.id, e.target.value)}
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[f.status]
-                      }`}
-                  >
-                    <option value="Open">Open</option>
-                    <option value="Resolved">Resolved</option>
-                    <option value="Reviewed">Reviewed</option>
-                    <option value="In Progress">In Progress</option>
-                  </select>
-                </td>
+        {filteredFeedback.length === 0 ? (
+          <p className="text-center py-8 text-gray-500">No feedback found.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-green-200 text-left text-gray-700">
+                <th className="p-3">ID</th>
+                <th className="p-3">Type</th>
+                <th className="p-3">Message</th>
+                <th className="p-3">Email</th>
+                <th className="p-3">Date Created</th>
+                <th className="p-3">Date Modified</th>
+                <th className="p-3">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {currentFeedback.map((f) => (
+                <tr
+                  key={f.id}
+                  className="border-b hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => {
+                    setSelectedFeedback(f);
+                    setShowModal(true);
+                  }}
+                >
+                  <td className="p-3">{f.id}</td>
+                  <td className="p-3">{f.type}</td>
+                  <td className="p-3">{truncateMessage(f.message)}</td>
+                  <td className="p-3">{f.email}</td>
+                  <td className="p-3">{f.date_created}</td>
+                  <td className="p-3">{f.date_modified || "-"}</td>
+                  <td className="p-3">
+                    {(() => {
+                      let allowedStatuses = [];
+
+                      // Determine allowed statuses based on type
+                      if (f.type === "Suggestion") {
+                        allowedStatuses = ["Open", "Reviewed"];
+                      } else if (
+                        f.type === "Bug Report" ||
+                        f.type === "Question"
+                      ) {
+                        allowedStatuses = ["Open", "Resolved", "In Progress"];
+                      } else {
+                        allowedStatuses = ["Open"]; // fallback
+                      }
+
+                      // Disable status change for "Resolved" or "Reviewed"
+                      const isStatusEditable = !(
+                        f.status === "Resolved" || f.status === "Reviewed"
+                      );
+
+                      return (
+                        <select
+                          value={f.status}
+                          onClick={(e) => e.stopPropagation()} // prevent opening modal
+                          onChange={(e) =>
+                            handleStatusChange(f.id, e.target.value)
+                          }
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            statusColors[f.status]
+                          }`}
+                          disabled={!isStatusEditable} // Disable if status is "Resolved" or "Reviewed"
+                        >
+                          {allowedStatuses.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      );
+                    })()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
+
+      {/* Modal (updated design) */}
+      {showModal && selectedFeedback && (
+        <div
+          onClick={() => setShowModal(false)}
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex justify-center items-center z-50"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white w-[500px] rounded-xl shadow-lg p-6 relative"
+          >
+            {/* X button */}
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h2 className="text-xl font-bold mb-4">Feedback Details</h2>
+
+            <div className="space-y-2 text-sm">
+              <p>
+                <strong>ID:</strong> {selectedFeedback.id}
+              </p>
+              <p>
+                <strong>Type:</strong> {selectedFeedback.type}
+              </p>
+              <p>
+                <strong>Date Created:</strong> {selectedFeedback.date_created}
+              </p>
+              <p>
+                <strong>Date Modified:</strong>{" "}
+                {selectedFeedback.date_modified || "-"}
+              </p>
+              <p>
+                <strong>Message:</strong>
+              </p>
+              <div className="border rounded-md bg-gray-50 p-3 h-40 overflow-y-auto text-gray-700">
+                {selectedFeedback.message}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pagination */}
-      <div className="flex justify-between items-center text-sm text-gray-600 mt-4">
-        <p>
-          Showing {startIndex + 1}-
-          {Math.min(endIndex, filteredFeedback.length)} of {filteredFeedback.length}
-        </p>
-
-        <div className="flex items-center gap-2">
-          <button
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-            className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
-          >
-            &lt;
-          </button>
-          <span>
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-            className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
-          >
-            &gt;
-          </button>
+      {filteredFeedback.length > 0 && (
+        <div className="flex justify-between items-center text-sm text-gray-600 mt-4">
+          <p>
+            Showing {startIndex + 1}–
+            {Math.min(endIndex, filteredFeedback.length)} of{" "}
+            {filteredFeedback.length}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className={`px-3 py-1 border rounded ${
+                currentPage === 1
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-100"
+              }`}
+            >
+              &lt;
+            </button>
+            <span>
+              Page {currentPage} of {totalPages || 1}
+            </span>
+            <button
+              onClick={() =>
+                setCurrentPage((p) => (p < totalPages ? p + 1 : p))
+              }
+              disabled={currentPage === totalPages || totalPages === 0}
+              className={`px-3 py-1 border rounded ${
+                currentPage === totalPages || totalPages === 0
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-100"
+              }`}
+            >
+              &gt;
+            </button>
+          </div>
         </div>
-
-        {/* Rows per page */}
-        <div className="ml-4">
-          <label className="mr-2">Rows per page:</label>
-          <select
-            value={itemsPerPage}
-            onChange={(e) => {
-              setItemsPerPage(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-            className="border rounded px-2 py-1"
-          >
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-          </select>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

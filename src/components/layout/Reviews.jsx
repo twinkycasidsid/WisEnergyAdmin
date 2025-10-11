@@ -1,27 +1,30 @@
 import React, { useEffect, useState } from "react";
-import { Filter, RotateCcw } from "lucide-react";
+import { Filter, RotateCcw, X } from "lucide-react";
 import { fetchAllReviews } from "../../../services/apiService";
 import { useSearch } from "../SearchContext";
+
 function Reviews() {
   const { searchQuery } = useSearch();
   const [reviews, setReviews] = useState([]);
   const [filteredReviews, setFilteredReviews] = useState([]);
-  const [ratingFilter, setRatingFilter] = useState(""); // Filter for rating
-  const [dateFilter, setDateFilter] = useState(""); // Filter for date
+  const [ratingFilter, setRatingFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10); // default 10 rows per page
-  // Pagination calculation
+  const itemsPerPage = 8;
+  const [selectedReview, setSelectedReview] = useState(null);
+
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
+  const totalPages = Math.ceil(filteredReviews.length / itemsPerPage);
   const currentReviews = filteredReviews.slice(startIndex, endIndex);
 
-  const totalPages = Math.ceil(filteredReviews.length / itemsPerPage);
+  const renderStars = (count) => (
+    <span className="text-yellow-500">
+      {"★".repeat(count)}
+      <span className="text-gray-300">{"★".repeat(5 - count)}</span>
+    </span>
+  );
 
-  const renderStars = (count) => {
-    const filled = "★".repeat(count);
-    const empty = "☆".repeat(5 - count);
-    return filled + empty;
-  };
   useEffect(() => {
     const loadReviews = async () => {
       try {
@@ -38,13 +41,11 @@ function Reviews() {
   useEffect(() => {
     let filtered = reviews;
 
-    // Rating filter
     if (ratingFilter) {
       const ratingValue = parseInt(ratingFilter[0], 10);
       filtered = filtered.filter((r) => r.rating === ratingValue);
     }
 
-    // Date filter
     if (dateFilter) {
       const filterDate = new Date(dateFilter);
       filtered = filtered.filter((r) => {
@@ -53,7 +54,6 @@ function Reviews() {
       });
     }
 
-    // 🔍 Global search
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -67,23 +67,22 @@ function Reviews() {
     }
 
     setFilteredReviews(filtered);
+    setCurrentPage(1);
   }, [reviews, ratingFilter, dateFilter, searchQuery]);
 
-  // Reset all filters
   const handleResetFilters = () => {
     setRatingFilter("");
     setDateFilter("");
-    setFilteredReviews(reviews); // Reset to all reviews
+    setFilteredReviews(reviews);
   };
 
   return (
-    <div className="p-6">
-      {/* Page Title */}
+    <div className="p-6 relative">
       <h1 className="text-2xl font-bold mb-6">Reviews</h1>
 
-      {/* Filter bar */}
-      <div className="flex items-center justify-between bg-white rounded-lg shadow px-4 py-3 mb-6">
-        <div className="flex items-center divide-x divide-gray-200">
+      {/* Filter Bar */}
+      <div className="flex items-center justify-between rounded-lg py-3 mb-6">
+        <div className="flex items-center bg-white rounded-lg shadow px-4 py-3 divide-x divide-gray-200">
           <div className="flex items-center gap-2 px-4">
             <Filter className="w-5 h-5 text-gray-600" />
             <span className="text-sm font-medium text-gray-700">Filter By</span>
@@ -109,7 +108,7 @@ function Reviews() {
           <div className="px-4">
             <label
               htmlFor="dateCreated"
-              className="font-semibold text-sm  text-gray-700 mr-2"
+              className="font-semibold text-sm text-gray-700 mr-2"
             >
               Date Created
             </label>
@@ -136,77 +135,123 @@ function Reviews() {
 
       {/* Reviews Table */}
       <div className="bg-white rounded-lg shadow overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-green-200 text-left text-gray-700">
-              <th className="p-3">ID</th>
-              <th className="p-3">Rating</th>
-              <th className="p-3">Message</th>
-              <th className="p-3">Email</th>
-              <th className="p-3">Date Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentReviews?.map((r) => (
-              <tr
-                key={r.id}
-                className="border-b hover:bg-gray-50 transition-colors"
-              >
-                <td className="p-3">{r.id}</td>
-                <td className="p-3">{renderStars(r.rating)}</td>
-                <td className="p-3">{r.message}</td>
-                <td className="p-3">{r.email}</td>
-                <td className="p-3">{r.created_at}</td>
+        {filteredReviews.length === 0 ? (
+          <p className="text-center py-8 text-gray-500">No reviews found.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-green-200 text-left text-gray-700">
+                <th className="p-3">ID</th>
+                <th className="p-3">Rating</th>
+                <th className="p-3">Message</th>
+                <th className="p-3">Email</th>
+                <th className="p-3">Date Created</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {currentReviews.map((r) => (
+                <tr
+                  key={r.id}
+                  onClick={() => setSelectedReview(r)}
+                  className="border-b hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <td className="p-3">{r.id}</td>
+                  <td className="p-3">{renderStars(r.rating)}</td>
+                  <td className="p-3 truncate max-w-xs">
+                    {r.message.length > 40
+                      ? `${r.message.slice(0, 40)}...`
+                      : r.message}
+                  </td>
+                  <td className="p-3">{r.email}</td>
+                  <td className="p-3">{r.created_at}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* Pagination */}
-      <div className="flex justify-between items-center text-sm text-gray-600 mt-4">
-        <p>
-          Showing {startIndex + 1}-
-          {Math.min(endIndex, filteredReviews.length)} of {filteredReviews.length}
-        </p>
+      {filteredReviews.length > 0 && (
+        <div className="flex justify-between items-center text-sm text-gray-600 mt-4">
+          <p>
+            Showing {startIndex + 1}–
+            {Math.min(endIndex, filteredReviews.length)} of{" "}
+            {filteredReviews.length}
+          </p>
 
-        <div className="flex items-center gap-2">
-          <button
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-            className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
-          >
-            &lt;
-          </button>
-          <span>
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-            className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
-          >
-            &gt;
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className={`px-3 py-1 border rounded ${
+                currentPage === 1
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-100"
+              }`}
+            >
+              &lt;
+            </button>
+            <span>
+              Page {currentPage} of {totalPages || 1}
+            </span>
+            <button
+              onClick={() =>
+                setCurrentPage((p) => (p < totalPages ? p + 1 : p))
+              }
+              disabled={currentPage === totalPages || totalPages === 0}
+              className={`px-3 py-1 border rounded ${
+                currentPage === totalPages || totalPages === 0
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-100"
+              }`}
+            >
+              &gt;
+            </button>
+          </div>
         </div>
+      )}
 
-        {/* Rows per page selector */}
-        <div className="ml-4">
-          <label className="mr-2">Rows per page:</label>
-          <select
-            value={itemsPerPage}
-            onChange={(e) => {
-              setItemsPerPage(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-            className="border rounded px-2 py-1"
+      {/* Review Modal */}
+      {selectedReview && (
+        <div
+          onClick={() => setSelectedReview(null)}
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside modal
+            className="bg-white rounded-lg shadow-lg max-w-lg w-full p-6 relative"
           >
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-          </select>
+            {/* X Button */}
+            <button
+              onClick={() => setSelectedReview(null)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h2 className="text-lg font-bold mb-3 text-gray-800">
+              Review Details
+            </h2>
+
+            <p className="text-sm text-gray-600 mb-2">
+              <strong>ID:</strong> {selectedReview.id}
+            </p>
+            <p className="text-sm text-gray-600 mb-2">
+              <strong>Rating:</strong> {renderStars(selectedReview.rating)}
+            </p>
+            <p className="text-sm text-gray-600 mb-2">
+              <strong>Email:</strong> {selectedReview.email}
+            </p>
+            <p className="text-sm text-gray-600 mb-2">
+              <strong>Date:</strong> {selectedReview.created_at}
+            </p>
+            <p className="text-sm text-gray-700 mt-4 whitespace-pre-wrap">
+              {selectedReview.message}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
