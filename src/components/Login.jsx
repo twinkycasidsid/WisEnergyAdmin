@@ -1,26 +1,40 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login } from "../../services/apiService";
+import { login } from "../../services/apiService"; // Assuming this is your login function
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(""); // State to hold error messages
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const result = await login(email, password);
+    // Clear any previous error message
+    setError("");
 
+    // Validate email and password fields
+    if (!email) {
+      setError("Email field cannot be empty.");
+      return;
+    }
+
+    if (!password) {
+      setError("Password field cannot be empty.");
+      return;
+    }
+
+    // Proceed with the API call if both fields are not empty
+    const result = await login(email, password);
     if (result.success) {
-      // ✅ Store token in localStorage (or context)
+      // Store the token and user details, then navigate
       localStorage.setItem("token", result.data.idToken);
       localStorage.setItem("user", JSON.stringify(result.data.user));
       navigate("/dashboard");
     } else {
-      setError(result.message);
+      // Handle error response from API
+      setError(result.message || "Login failed. Please try again.");
     }
   };
 
@@ -34,37 +48,25 @@ function Login() {
         backgroundRepeat: "no-repeat",
       }}
     >
-      {/* Brand top-left */}
       <div className="absolute z-30 top-8 left-8 flex items-center gap-3">
         <img src="/wisenergylogo.png" alt="WisEnergy" className="h-12 w-12" />
         <div>
-          <span className="text-3xl font-bold text-[#24924B] leading-tight">
-            WisEnergy
-          </span>
+          <span className="text-3xl font-bold text-[#24924B] leading-tight">WisEnergy</span>
         </div>
       </div>
 
-      {/* Centered card */}
       <form
         onSubmit={handleSubmit}
         className="relative z-30 w-[95%] max-w-[420px] rounded-2xl bg-white shadow-xl border border-gray-200 px-8 py-8"
       >
-        <h2 className="text-2xl font-bold text-center mb-1">
-          Login to Account
-        </h2>
-        <p className="mb-6 text-center text-gray-600 text-[15px]">
-          Please enter your email and password to continue
-        </p>
+        <h2 className="text-2xl font-bold text-center mb-1">Login to Account</h2>
+        <p className="mb-6 text-center text-gray-600 text-[15px]">Please enter your email and password to continue</p>
 
-        {error && (
-          <div className="mb-4 text-center text-red-600 text-sm">{error}</div>
-        )}
+        {error && <div className="mb-4 text-center text-red-600 text-sm">{error}</div>} {/* Display error message */}
 
-        {/* Email */}
+        {/* Email field */}
         <div className="mb-4">
-          <label className="block text-sm mb-1 font-medium text-gray-700">
-            Email address:
-          </label>
+          <label className="block text-sm mb-1 font-medium text-gray-700">Email address:</label>
           <input
             type="email"
             placeholder="Enter your email address"
@@ -75,12 +77,10 @@ function Login() {
           />
         </div>
 
-        {/* Password + forget link in the same row */}
+        {/* Password field */}
         <div className="mb-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-gray-700">
-              Password
-            </label>
+            <label className="text-sm font-medium text-gray-700">Password</label>
           </div>
           <input
             type="password"
@@ -92,26 +92,7 @@ function Login() {
           />
         </div>
 
-        {/* Remember and Forget Password in one row */}
-        <div className="mt-4 mb-6 flex items-center justify-between">
-          <div className="flex items-center">
-            {/* <input
-              id="remember"
-              type="checkbox"
-              checked={remember}
-              onChange={() => setRemember(!remember)}
-              className="mr-2 h-4 w-4 accent-[#24924B]"
-            />
-            <label htmlFor="remember" className="text-sm text-gray-700">
-              Remember Password
-            </label> */}
-          </div>
-          <a href="/forgot-password" className="text-[14px] text-gray-500 hover:underline">
-            Forgot Password?
-          </a>
-        </div>
-
-        {/* Submit */}
+        {/* Submit button */}
         <button
           type="submit"
           className="w-full h-11 rounded-md bg-[#215C38] text-white font-semibold hover:bg-[#1a4a2d] transition-colors text-[17px]"

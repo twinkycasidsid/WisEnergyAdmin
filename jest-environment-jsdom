@@ -1,0 +1,11 @@
+module.exports = {
+    preset: './jest-preset.js',  // Reference the custom preset (ESM file)
+    testEnvironment: 'jest-environment-jsdom', // Make sure this is correctly specified
+    setupFilesAfterEnv: ['@testing-library/jest-dom/extend-expect'],
+    transform: {
+        '^.+\\.jsx?$': 'babel-jest',  // Use Babel to handle JSX files
+    },
+    moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/src/$1', // Adjust module aliasing if needed
+    },
+};
