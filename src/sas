@@ -1,0 +1,5 @@
+npx vitest tests/ACCOUNTS_CASE065.test.jsx 
+
+npx vitest tests/LOGIN_CASE006.test.jsx 
+
+npx vitest tests/ACCOUNTS_CASE072.test.jsx 

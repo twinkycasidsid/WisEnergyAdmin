@@ -33,11 +33,16 @@ function Dashboard() {
     fetchUsers();
 
     const fetchDevices = async () => {
-      const result = await fetchAllDevices();
-      setTotalDevices(result);
+      try {
+        const result = await fetchAllDevices();
+        // If the result is undefined or null, set it to an empty array
+        setTotalDevices(result || []);
+      } catch (error) {
+        setTotalDevices([]); // Set to empty array in case of error
+        console.error("Failed to fetch devices:", error);
+      }
     };
     fetchDevices();
-
     const fetchFeedback = async () => {
       const result = await fetchAllFeedbacks();
       setFeedback(result);
@@ -75,10 +80,13 @@ function Dashboard() {
     { name: "unpaired", value: 0 },
   ];
 
-  totalDevices.forEach((device) => {
-    if (device.status === "paired") deviceStatusData[0].value++;
-    else deviceStatusData[1].value++;
-  });
+  // Make sure totalDevices is an array before iterating
+  if (Array.isArray(totalDevices)) {
+    totalDevices.forEach((device) => {
+      if (device.status === "paired") deviceStatusData[0].value++;
+      else deviceStatusData[1].value++;
+    });
+  }
 
   // Rating Distribution
   const ratingDistribution = [

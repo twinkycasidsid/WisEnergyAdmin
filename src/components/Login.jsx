@@ -11,29 +11,36 @@ function Login() {
 
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    if (!email) {
-      setError("Email field cannot be empty.");
-      return;
-    }
+  if (!email) {
+    setError("Email field cannot be empty.");
+    return;
+  }
 
-    if (!emailRegex.test(email)) {
-      setError("Invalid email format");
-      return;
-    }
+  if (!password) {
+    setError("Password field cannot be empty.");
+    return;
+  }
 
-    const result = await login(email, password);
+  if (!emailRegex.test(email)) {
+    setError("Invalid email format");
+    return;
+  }
 
-    if (result.success) {
-      localStorage.setItem("token", result.data.idToken);
-      localStorage.setItem("user", JSON.stringify(result.data.user));
-      navigate("/dashboard");
-    } else {
-      setError(result.message);
-    }
-  };
+  const result = await login(email, password);
+
+  if (result.success) {
+    // If login is successful, store token and user data, and navigate to dashboard
+    localStorage.setItem("token", result.data.idToken);
+    localStorage.setItem("user", JSON.stringify(result.data.user));
+    navigate("/dashboard");
+  } else {
+    // If login fails (incorrect credentials), set an "Invalid credentials" error message
+    setError("Invalid credentials.");
+  }
+};
 
   return (
     <div

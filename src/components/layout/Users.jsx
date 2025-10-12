@@ -23,48 +23,36 @@ function Users() {
   const [filteredUsers, setFilteredUsers] = useState([]);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(8);
+  const [itemsPerPage, setItemsPerPage] = useState(7);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
 
-  // Slice the filtered users to show only the current page
   const currentUsers = filteredUsers.slice(startIndex, endIndex);
-
-  // Total number of pages
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
   // Filter states
   const [locationFilter, setLocationFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
-  const [startDateFilter, setStartDateFilter] = useState(""); // Start date filter
-  const [endDateFilter, setEndDateFilter] = useState(""); // End date filter
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
 
-  const formatDate = (date) => {
-    const d = new Date(date);
-    return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
-  };
-  // Fetch users
+  // Fetch all users on mount
   useEffect(() => {
     const fetchUsers = async () => {
       const result = await fetchAllUsers();
-      console.log(result);
-
       setUsers(result);
-      setFilteredUsers(result); // Initialize filtered users with all users
+      setFilteredUsers(result);
     };
     fetchUsers();
   }, []);
 
-  // Handle filtering logic
+  // Filter logic
   useEffect(() => {
     let filtered = users;
 
-    // Existing filters (location, role, dates)...
-    if (locationFilter) {
+    if (locationFilter)
       filtered = filtered.filter((u) => u.location === locationFilter);
-    }
-    if (roleFilter) {
-      filtered = filtered.filter((u) => u.role === roleFilter);
-    }
+    if (roleFilter) filtered = filtered.filter((u) => u.role === roleFilter);
     if (startDateFilter && endDateFilter) {
       const start = new Date(startDateFilter);
       const end = new Date(endDateFilter);
@@ -74,7 +62,6 @@ function Users() {
       });
     }
 
-    // 🔍 Global search
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -84,8 +71,7 @@ function Users() {
           u.last_name?.toLowerCase().includes(q) ||
           u.email?.toLowerCase().includes(q) ||
           u.location?.toLowerCase().includes(q) ||
-          u.role?.toLowerCase().includes(q) ||
-          u.created_at?.toLowerCase().includes(q)
+          u.role?.toLowerCase().includes(q)
       );
     }
 
@@ -100,13 +86,12 @@ function Users() {
   ]);
 
   const handleAdd = (role = "User") => {
-    setEditUser(null); // no initial data
-    setNewRole(role); // preset role
+    setEditUser(null);
+    setNewRole(role);
     setShowUserModal(true);
     setShowAddMenu(false);
   };
 
-  // Reset all filters
   const handleResetFilters = () => {
     setLocationFilter("");
     setRoleFilter("");
@@ -120,59 +105,61 @@ function Users() {
       <UserModal
         isOpen={showUserModal}
         onClose={() => setShowUserModal(false)}
+        existingEmails={users
+          .map((u) => u.email?.toLowerCase())
+          .filter(Boolean)} // ✅ safe
         onSubmit={async (formData) => {
-          if (editUser) {
-            // 🔹 Call API to update existing user
-            const result = await updateUser(editUser.uid, {
-              ...formData,
-              role: newRole.toLowerCase(),
-            });
+          try {
+            // Only include location for users
+            const payload = {
+              first_name: formData.first_name,
+              last_name: formData.last_name,
+              email: formData.email,
+              role: formData.role.toLowerCase() === "admin" ? "Admin" : "User", // capitalized
+              ...(formData.role.toLowerCase() !== "admin"
+                ? { location: formData.location }
+                : {}),
+              ...(formData.role.toLowerCase() === "admin"
+                ? { password: formData.password }
+                : {}),
+            };
 
-            if (result.success) {
-              // update local state so UI reflects changes
-              setUsers((prev) =>
-                prev.map((u) =>
-                  u.uid === editUser.uid
-                    ? { ...u, ...formData, role: newRole.toLowerCase() }
-                    : u
-                )
-              );
+            const result = editUser
+              ? await updateUser(editUser.uid, payload)
+              : await addNewUser(payload);
+
+            if (result?.success) {
+              if (editUser) {
+                setUsers((prev) =>
+                  prev.map((u) =>
+                    u.uid === editUser.uid ? { ...u, ...formData } : u
+                  )
+                );
+              } else {
+                setUsers((prev) => [result.data, ...prev]);
+              }
+              setShowUserModal(false);
             } else {
-              console.error("❌ Failed to update user:", result.message);
+              const msg = result?.message || JSON.stringify(result);
+              alert(`❌ Create failed: ${msg}`);
             }
-          } else {
-            // 🔹 Creating new user
-            console.log(formData);
-
-            const result = await addNewUser({
-              ...formData,
-            });
-            console.log(result);
-
-            if (result.success) {
-              setUsers((prev) => [result.data, ...prev]);
-            } else {
-              console.error("❌ Create failed:", result.message);
-            }
+          } catch (err) {
+            console.error(err);
+            alert(`❌ Create failed: ${err.message || JSON.stringify(err)}`);
           }
-
-          setShowUserModal(false);
         }}
         initialData={editUser || {}}
         mode={editUser ? "edit" : "create"}
-        role={newRole} // ✅ this tells modal which form to show
+        role={newRole}
       />
 
       {/* Page Content */}
       <div className="p-6">
-        {/* Page Title */}
         <h1 className="text-2xl font-bold mt-0 mb-3">Users</h1>
 
-        {/* Filter bar */}
+        {/* Filter Bar */}
         <div className="flex items-center justify-between rounded-lg py-3 mb-2">
-          {/* Filter section with dividers */}
           <div className="flex items-center bg-white rounded-lg shadow px-4 py-3 divide-x divide-gray-200">
-            {/* Filter By */}
             <div className="flex items-center gap-2 px-4">
               <Filter className="w-5 h-5 text-gray-600" />
               <span className="text-sm font-medium text-gray-700">
@@ -180,11 +167,10 @@ function Users() {
               </span>
             </div>
 
-            {/* Location Filter */}
-            <div
-              onClick={() => document.getElementById("locationFilter").focus()}
-              className="px-4 cursor-pointer"
-            >
+            <div className="px-4">
+              <label htmlFor="locationFilter" className="sr-only">
+                Location
+              </label>
               <select
                 id="locationFilter"
                 value={locationFilter}
@@ -197,9 +183,12 @@ function Users() {
               </select>
             </div>
 
-            {/* Role Filter */}
             <div className="px-4">
+              <label htmlFor="roleFilter" className="sr-only">
+                Role
+              </label>
               <select
+                id="roleFilter"
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
                 className="bg-transparent text-sm text-gray-700 focus:outline-none"
@@ -210,7 +199,6 @@ function Users() {
               </select>
             </div>
 
-            {/* Start Date Filter */}
             <div className="px-4">
               <label
                 htmlFor="startDate"
@@ -227,7 +215,6 @@ function Users() {
               />
             </div>
 
-            {/* End Date Filter */}
             <div className="px-4">
               <label
                 htmlFor="endDate"
@@ -244,21 +231,19 @@ function Users() {
               />
             </div>
 
-            {/* Reset Filter */}
             <div className="px-4">
               <button
                 onClick={handleResetFilters}
                 className="flex items-center gap-2 text-red-500 hover:text-red-600 text-sm font-medium"
               >
-                <RotateCcw className="w-4 h-4" />
-                Reset Filter
+                <RotateCcw className="w-4 h-4" /> Reset Filter
               </button>
             </div>
           </div>
 
-          {/* Right side: Plus button */}
-          <div className="ml-auto">
+          <div className="ml-auto relative">
             <button
+              aria-label="Add User Menu"
               onClick={() => setShowAddMenu((prev) => !prev)}
               className="flex items-center justify-center w-9 h-9 rounded-full bg-[#43A866] text-white hover:bg-green-700"
             >
@@ -284,7 +269,7 @@ function Users() {
           </div>
         </div>
 
-        {/* Table */}
+        {/* User Table */}
         <div className="bg-white rounded-lg shadow overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -301,7 +286,7 @@ function Users() {
               </tr>
             </thead>
             <tbody>
-              {currentUsers?.map((u) => (
+              {currentUsers.map((u) => (
                 <tr
                   key={u.uid}
                   className="border-b hover:bg-gray-50 transition-colors"
@@ -326,8 +311,8 @@ function Users() {
                     </button>
                     <button
                       onClick={() => {
-                        setDeleteTarget(u); // store user being deleted
-                        setShowConfirmModal(true); // open modal
+                        setDeleteTarget(u);
+                        setShowConfirmModal(true);
                       }}
                       className="flex items-center gap-1 bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
                     >
@@ -338,6 +323,7 @@ function Users() {
               ))}
             </tbody>
           </table>
+
           <ConfirmModal
             isOpen={showConfirmModal}
             onClose={() => {
@@ -354,7 +340,8 @@ function Users() {
             message={`Are you sure you want to delete ${deleteTarget?.first_name} ${deleteTarget?.last_name}?`}
           />
         </div>
-        {/* Pagination - outside white container */}
+
+        {/* Pagination */}
         {filteredUsers.length > 0 && (
           <div className="flex justify-between items-center text-sm text-gray-600 mt-4">
             <p>
@@ -362,7 +349,6 @@ function Users() {
               {Math.min(endIndex, filteredUsers.length)} of{" "}
               {filteredUsers.length}
             </p>
-
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
