@@ -1,11 +1,15 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { verify_otp } from "../../../services/apiService";
 
 function CodeVerification() {
-  const [otp, setOtp] = useState(new Array(6).fill(""));
+  const { state } = useLocation()
+  const email = state.email;
+  const [otp, setOtp] = useState(new Array(5).fill(""));
+  const [error, setError] = useState("")
   const navigate = useNavigate();
-
   // handle input change
+
   const handleChange = (element, index) => {
     if (isNaN(element.value)) return false;
 
@@ -19,9 +23,20 @@ function CodeVerification() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (otp.some(digit => digit === "")) {
+      setError("Please enter the complete OTP");
+      return;
+    }
     console.log("Entered OTP:", otp.join(""));
+    const result = await verify_otp(email, otp.join(""));
+    if (result.success) {
+      navigate("/reset-password", { state: { email } })
+    } else {
+      setError(result.message)
+    }
+
     // call API to verify OTP here
   };
 
@@ -57,20 +72,25 @@ function CodeVerification() {
         </p>
 
         {/* OTP Inputs */}
-        <div className="flex justify-between mb-6">
-          {otp.map((data, index) => (
-            <input
-              key={index}
-              type="text"
-              maxLength="1"
-              value={data}
-              onChange={(e) => handleChange(e.target, index)}
-              onFocus={(e) => e.target.select()}
-              className="w-12 h-12 border border-gray-300 rounded-md text-center text-xl font-semibold focus:outline-none focus:ring-2 focus:ring-[#24924B]/30"
-            />
-          ))}
-        </div>
+        <div className="mb-4">
+          <div className="flex justify-between mb-2">
+            {otp.map((data, index) => (
+              <input
+                key={index}
+                type="text"
+                maxLength="1"
+                value={data}
+                onChange={(e) => handleChange(e.target, index)}
+                onFocus={(e) => e.target.select()}
+                className="w-12 h-12 border border-gray-300 rounded-md text-center text-xl font-semibold focus:outline-none focus:ring-2 focus:ring-[#24924B]/30"
+              />
+            ))}
 
+          </div>
+          {error && (
+            <span className="text-red-500">{error}</span>
+          )}
+        </div>
         {/* Proceed button */}
         <button
           type="submit"

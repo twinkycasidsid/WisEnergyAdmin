@@ -1,32 +1,71 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { reset_password } from "../../../services/apiService";
 
 function ResetPassword() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { state } = useLocation();
 
-  const handleSubmit = (e) => {
+  const validatePassword = (password) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecialChar = /[@$!%*?&]/.test(password);
+
+    if (password.length < minLength) {
+      return "Password must be at least 8 characters long.";
+    }
+    if (!hasUpperCase) {
+      return "Password must contain at least one uppercase letter.";
+    }
+    if (!hasLowerCase) {
+      return "Password must contain at least one lowercase letter.";
+    }
+    if (!hasNumber) {
+      return "Password must contain at least one number.";
+    }
+    if (!hasSpecialChar) {
+      return "Password must contain at least one special character (@$!%*?&).";
+    }
+    return "";
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
+    // Validate password
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
-    console.log("New password:", newPassword);
-    // Call API to reset password here
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
 
-    setError("");
-    navigate("/login"); // redirect to login after success
+    // Call API to reset password
+    const response = await reset_password(state.email, confirmPassword)
+    if (response.success) {
+      alert("Password reset successful!");
+      navigate("/login");
+    } else {
+      setError(response.message)
+    }
+
   };
 
   return (
     <div
       className="relative min-h-screen w-full flex items-center justify-center"
       style={{
-        backgroundImage: "url('/adminloginbg.png')", // background image
+        backgroundImage: "url('/adminloginbg.png')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
@@ -84,7 +123,7 @@ function ResetPassword() {
 
         {/* Reset Button */}
         <button
-          href="/reset-success" type="submit"
+          type="submit"
           className="w-full h-11 rounded-md bg-[#215C38] text-white font-semibold hover:bg-[#1a4a2d] transition-colors text-[16px]"
         >
           Reset Password
