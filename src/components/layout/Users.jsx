@@ -27,8 +27,8 @@ function Users() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
 
-  const currentUsers = filteredUsers.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const currentUsers = (filteredUsers || []).slice(startIndex, endIndex);
+  const totalPages = Math.ceil((filteredUsers || []).length / itemsPerPage);
 
   // Filter states
   const [locationFilter, setLocationFilter] = useState("");
@@ -105,47 +105,56 @@ function Users() {
       <UserModal
         isOpen={showUserModal}
         onClose={() => setShowUserModal(false)}
-        existingEmails={users
-          .map((u) => u.email?.toLowerCase())
-          .filter(Boolean)} // ✅ safe
+        existingEmails={
+          users?.map((u) => u.email?.toLowerCase()).filter(Boolean) || []
+        }
         onSubmit={async (formData) => {
           try {
-            // Only include location for users
+            // Prepare payload for API
             const payload = {
               first_name: formData.first_name,
               last_name: formData.last_name,
               email: formData.email,
-              role: formData.role.toLowerCase() === "admin" ? "Admin" : "User", // capitalized
+              role: formData.role.toLowerCase() === "admin" ? "Admin" : "User",
               ...(formData.role.toLowerCase() !== "admin"
                 ? { location: formData.location }
                 : {}),
-              ...(formData.role.toLowerCase() === "admin"
+              ...(formData.role.toLowerCase() === "admin" && formData.password
                 ? { password: formData.password }
                 : {}),
             };
 
-            const result = editUser
-              ? await updateUser(editUser.uid, payload)
-              : await addNewUser(payload);
+            let result;
+            if (editUser) {
+              // ✅ Update user API call
+              result = await updateUser(editUser.uid, payload);
 
-            if (result?.success) {
-              if (editUser) {
+              if (result?.success) {
+                // ✅ Update the local state
                 setUsers((prev) =>
                   prev.map((u) =>
-                    u.uid === editUser.uid ? { ...u, ...formData } : u
+                    u.uid === editUser.uid ? { ...u, ...payload } : u
                   )
                 );
-              } else {
+                alert("✅ User details updated successfully");
+              }
+            } else {
+              // ✅ Add new user
+              result = await addNewUser(payload);
+              if (result?.success) {
                 setUsers((prev) => [result.data, ...prev]);
               }
-              setShowUserModal(false);
-            } else {
+            }
+
+            setShowUserModal(false);
+
+            if (!result?.success) {
               const msg = result?.message || JSON.stringify(result);
-              alert(`❌ Create failed: ${msg}`);
+              alert(`❌ Operation failed: ${msg}`);
             }
           } catch (err) {
             console.error(err);
-            alert(`❌ Create failed: ${err.message || JSON.stringify(err)}`);
+            alert(`❌ Operation failed: ${err.message || JSON.stringify(err)}`);
           }
         }}
         initialData={editUser || {}}
@@ -323,7 +332,12 @@ function Users() {
               ))}
             </tbody>
           </table>
-
+          {/* ✅ No Results Found */}
+          {filteredUsers.length === 0 && (
+            <div className="p-4 text-center text-gray-500">
+              No results found
+            </div>
+          )}
           <ConfirmModal
             isOpen={showConfirmModal}
             onClose={() => {
@@ -336,6 +350,8 @@ function Users() {
               );
               setDeleteTarget(null);
               setShowConfirmModal(false);
+                  alert("✅ User deleted successfully");
+
             }}
             message={`Are you sure you want to delete ${deleteTarget?.first_name} ${deleteTarget?.last_name}?`}
           />

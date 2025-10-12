@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom', // Required for React/DOM testing
     globals: true, // Makes `describe`, `it`, `expect` global (no imports needed)
-    setupFiles: ['./src/setupTests.js'], // Optional: Global setup (see below)
+    setupFiles: ['./setupTests.js'], // Optional: Global setup (see below)
     css: true, // Handles Tailwind/CSS in tests
   },
   resolve: {

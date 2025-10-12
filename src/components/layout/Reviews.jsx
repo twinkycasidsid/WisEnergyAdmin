@@ -113,6 +113,7 @@ function Reviews() {
               Date Created
             </label>
             <input
+              id="dateCreated"
               type="date"
               className="bg-transparent text-sm text-gray-700 focus:outline-none"
               value={dateFilter}
@@ -135,21 +136,25 @@ function Reviews() {
 
       {/* Reviews Table */}
       <div className="bg-white rounded-lg shadow overflow-x-auto">
-        {filteredReviews.length === 0 ? (
-          <p className="text-center py-8 text-gray-500">No reviews found.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-green-200 text-left text-gray-700">
-                <th className="p-3">ID</th>
-                <th className="p-3">Rating</th>
-                <th className="p-3">Message</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Date Created</th>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-green-200 text-left text-gray-700">
+              <th className="p-3">ID</th>
+              <th className="p-3">Rating</th>
+              <th className="p-3">Message</th>
+              <th className="p-3">Email</th>
+              <th className="p-3">Date Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentReviews.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-8 text-gray-500">
+                  No results found.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {currentReviews.map((r) => (
+            ) : (
+              currentReviews.map((r) => (
                 <tr
                   key={r.id}
                   onClick={() => setSelectedReview(r)}
@@ -165,10 +170,10 @@ function Reviews() {
                   <td className="p-3">{r.email}</td>
                   <td className="p-3">{r.created_at}</td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* Pagination */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Filter, RotateCcw } from "lucide-react";
 import { fetchAllDevices } from "../../../services/apiService";
-import { useSearch } from "../SearchContext"; // adjust path if deeper
+import { useSearch } from "../SearchContext";
 
 function Devices() {
   const { searchQuery } = useSearch();
@@ -17,17 +17,21 @@ function Devices() {
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const totalPages = Math.ceil(filteredDevices.length / itemsPerPage);
-  const currentDevices = filteredDevices.slice(startIndex, endIndex);
+
+  // Safe defaults for length and slice
+  const totalPages = Math.ceil((filteredDevices?.length || 0) / itemsPerPage);
+  const currentDevices = (filteredDevices || []).slice(startIndex, endIndex);
 
   useEffect(() => {
     const fetchDevicesData = async () => {
       try {
         const response = await fetchAllDevices();
-        setDevices(response);
-        setFilteredDevices(response);
+        setDevices(response || []);
+        setFilteredDevices(response || []);
       } catch (error) {
         console.error("Error fetching devices:", error);
+        setDevices([]);
+        setFilteredDevices([]);
       }
     };
 
@@ -35,7 +39,7 @@ function Devices() {
   }, []);
 
   useEffect(() => {
-    let filtered = devices;
+    let filtered = devices || [];
 
     if (statusFilter) {
       filtered = filtered.filter((d) => d.status === statusFilter);
@@ -63,7 +67,7 @@ function Devices() {
     }
 
     setFilteredDevices(filtered);
-    setCurrentPage(1); // reset to first page when filters/search change
+    setCurrentPage(1);
   }, [devices, statusFilter, startDateFilter, endDateFilter, searchQuery]);
 
   const handleResetFilters = () => {
@@ -76,8 +80,8 @@ function Devices() {
     if (!dateString) return "";
     const date = new Date(dateString);
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0"); // Ensure 2 digits for month
-    const day = String(date.getDate()).padStart(2, "0"); // Ensure 2 digits for day
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
 
@@ -85,7 +89,7 @@ function Devices() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Devices</h1>
 
-      {/* Filter bar */}
+      {/* Filter Bar */}
       <div className="flex items-center justify-between bg-white rounded-lg shadow px-4 py-3 mb-6">
         <div className="flex items-center divide-x divide-gray-200">
           <div className="flex items-center gap-2 px-4">
@@ -106,10 +110,7 @@ function Devices() {
           </div>
 
           <div className="px-2">
-            <label
-              htmlFor="startDate"
-              className="font-semibold text-sm text-gray-700 mr-2"
-            >
+            <label htmlFor="startDate" className="font-semibold text-sm text-gray-700 mr-2">
               Start Date
             </label>
             <input
@@ -122,10 +123,7 @@ function Devices() {
           </div>
 
           <div className="px-2">
-            <label
-              htmlFor="endDate"
-              className="font-semibold text-sm text-gray-700 mr-2"
-            >
+            <label htmlFor="endDate" className="font-semibold text-sm text-gray-700 mr-2">
               End Date
             </label>
             <input
@@ -151,7 +149,7 @@ function Devices() {
 
       {/* Devices Table */}
       <div className="bg-white rounded-lg shadow overflow-x-auto">
-        {filteredDevices.length === 0 ? (
+        {currentDevices.length === 0 ? (
           <p className="text-center py-8 text-gray-500">No devices found.</p>
         ) : (
           <table className="w-full text-sm">
@@ -176,7 +174,6 @@ function Devices() {
                   <td className="p-3">{d.device_nickname}</td>
                   <td className="p-3">{d.owner}</td>
                   <td className="p-3">{d.pairing_code}</td>
-                  {/* Format paired_at and register_at to show only the date */}
                   <td className="p-3">{formatDate(d.paired_at)}</td>
                   <td className="p-3">{formatDate(d.register_at)}</td>
                   <td className="p-3 capitalize">{d.status}</td>
@@ -187,23 +184,17 @@ function Devices() {
         )}
       </div>
 
-      {/* Pagination - outside white container */}
-      {filteredDevices.length > 0 && (
+      {/* Pagination */}
+      {currentDevices.length > 0 && (
         <div className="flex justify-between items-center text-sm text-gray-600 mt-4">
           <p>
-            Showing {startIndex + 1}–{Math.min(endIndex, filteredDevices.length)} of{" "}
-            {filteredDevices.length}
+            Showing {startIndex + 1}–{Math.min(endIndex, filteredDevices.length)} of {filteredDevices.length}
           </p>
-
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
-              className={`px-3 py-1 border rounded ${
-                currentPage === 1
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-3 py-1 border rounded ${currentPage === 1 ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-100"}`}
             >
               &lt;
             </button>
@@ -211,15 +202,9 @@ function Devices() {
               Page {currentPage} of {totalPages || 1}
             </span>
             <button
-              onClick={() =>
-                setCurrentPage((p) => (p < totalPages ? p + 1 : p))
-              }
+              onClick={() => setCurrentPage((p) => (p < totalPages ? p + 1 : p))}
               disabled={currentPage === totalPages || totalPages === 0}
-              className={`px-3 py-1 border rounded ${
-                currentPage === totalPages || totalPages === 0
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-3 py-1 border rounded ${currentPage === totalPages || totalPages === 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-100"}`}
             >
               &gt;
             </button>

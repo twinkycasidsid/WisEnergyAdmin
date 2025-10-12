@@ -19,30 +19,39 @@ function UserModal({
   const handleSubmit = (e) => {
     e.preventDefault();
     const data = new FormData(e.target);
+
     const firstName = data.get("firstName")?.trim();
     const lastName = data.get("lastName")?.trim();
-    const email = data.get("email")?.trim();
-    const location = data.get("location")?.trim();
+    // Use initialData.email during edit
+    const email =
+      mode === "edit" ? initialData.email : data.get("email")?.trim();
     const password = data.get("password");
     const confirmPassword = data.get("confirmPassword");
+    const location = data.get("location")?.trim();
 
     let validationErrors = [];
 
     // Required fields
     if (!firstName) validationErrors.push("First Name is required");
     if (!lastName) validationErrors.push("Last Name is required");
-    if (!email) validationErrors.push("Email is required");
-    if (effectiveRole.toLowerCase() !== "admin" && !location)
-      validationErrors.push("Location is required");
+    if (!email) validationErrors.push("Email is required"); // now email exists during edit
 
-    // Admin password validation
-    if (effectiveRole.toLowerCase() === "admin" && mode === "create") {
-      if (!password) validationErrors.push("Password is required");
-      if (password !== confirmPassword)
-        validationErrors.push("Passwords do not match");
+    // Location only required for users
+    if (effectiveRole.toLowerCase() !== "admin" && !location) {
+      validationErrors.push("Location is required");
     }
 
-    // Duplicate email check
+    // Admin fields for create
+    if (effectiveRole.toLowerCase() === "admin" && mode === "create") {
+      if (!password) validationErrors.push("Password is required");
+      if (!confirmPassword)
+        validationErrors.push("Confirm Password is required");
+      if (password && confirmPassword && password !== confirmPassword) {
+        validationErrors.push("Passwords do not match");
+      }
+    }
+
+    // Duplicate email check for create only
     if (mode === "create" && existingEmails.includes(email?.toLowerCase())) {
       validationErrors.push("Email already exists");
     }
@@ -52,16 +61,18 @@ function UserModal({
       return;
     }
 
-    const formData = {
+    const formDataObj = {
       first_name: firstName,
       last_name: lastName,
       email,
       role: effectiveRole,
-      ...(effectiveRole !== "admin" ? { location } : {}),
-      ...(effectiveRole === "admin" && password ? { password } : {}),
+      ...(effectiveRole.toLowerCase() !== "admin" ? { location } : {}),
+      ...(effectiveRole.toLowerCase() === "admin" && password
+        ? { password }
+        : {}),
     };
 
-    onSubmit(formData);
+    onSubmit(formDataObj);
     setErrors([]);
   };
 
@@ -118,9 +129,9 @@ function UserModal({
             type="email"
             name="email"
             defaultValue={initialData.email || ""}
-            disabled={mode === "edit"}
             placeholder="Email Address"
             aria-label="Email Address"
+            disabled={mode === "edit"} // ✅ disable email during edit
             className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           />
 
