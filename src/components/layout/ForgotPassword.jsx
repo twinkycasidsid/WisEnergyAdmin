@@ -1,14 +1,25 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { generate_otp } from "../../../services/apiService";
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
+  const [error, setError] = useState("")
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
+    setError("")
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
     e.preventDefault();
-    console.log("Password reset for:", email);
-   
+    const result = await generate_otp(email, false)
+    if (result.success) {
+      navigate("/code-verification", { state: { email } })
+    } else {
+      setError(result.message)
+    }
   };
 
   return (
@@ -55,6 +66,9 @@ function ForgotPassword() {
             autoComplete="username"
             className="w-full h-11 rounded-md border border-gray-300 bg-gray-100 px-4 text-[15px] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#24924B]/30"
           />
+          {error && (
+            <span className="text-red-600">{error}</span>
+          )}
         </div>
 
         {/* Reset button */}
