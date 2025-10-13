@@ -101,9 +101,9 @@ function Rates() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    const { city, month } = deleteTarget;
-    const [year, m] = month.split("-");
-    const res = await deleteRate(city, year, m);
+    const { city, year, month } = deleteTarget;
+
+    const res = await deleteRate(city, year, month.padStart(2, "0"));
 
     if (res.success) {
       setRates((prev) => prev.filter((x) => x.id !== deleteTarget.id));
@@ -179,8 +179,8 @@ function Rates() {
               >
                 {monthFilter
                   ? new Date(monthFilter).toLocaleString("default", {
-                      month: "long",
-                    })
+                    month: "long",
+                  })
                   : "Select Month"}
                 <input
                   id="month"
@@ -301,11 +301,10 @@ function Rates() {
               <button
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                 disabled={currentPage === 1}
-                className={`px-3 py-1 border rounded ${
-                  currentPage === 1
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:bg-gray-100"
-                }`}
+                className={`px-3 py-1 border rounded ${currentPage === 1
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-100"
+                  }`}
               >
                 &lt;
               </button>
@@ -323,16 +322,15 @@ function Rates() {
                 }
                 disabled={
                   currentPage ===
-                    Math.ceil(filteredRates.length / itemsPerPage) ||
+                  Math.ceil(filteredRates.length / itemsPerPage) ||
                   filteredRates.length === 0
                 }
-                className={`px-3 py-1 border rounded ${
-                  currentPage ===
-                    Math.ceil(filteredRates.length / itemsPerPage) ||
+                className={`px-3 py-1 border rounded ${currentPage ===
+                  Math.ceil(filteredRates.length / itemsPerPage) ||
                   filteredRates.length === 0
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:bg-gray-100"
-                }`}
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-100"
+                  }`}
               >
                 &gt;
               </button>
