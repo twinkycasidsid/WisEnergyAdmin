@@ -147,6 +147,7 @@ function Feedback() {
           {/* Type Filter */}
           <div className="px-4">
             <select
+              aria-label="Type Filter"
               className="bg-transparent text-sm text-gray-700 focus:outline-none"
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
@@ -161,6 +162,7 @@ function Feedback() {
           {/* Status Filter */}
           <div className="px-4">
             <select
+              aria-label="Status Filter"
               className="bg-transparent text-sm text-gray-700 focus:outline-none"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -176,6 +178,7 @@ function Feedback() {
           {/* Date Created Filter */}
           <div className="px-4">
             <label
+              aria-label="Date FilterFilter"
               htmlFor="dateCreated"
               className="font-semibold text-sm text-gray-700 mr-2"
             >
@@ -221,23 +224,27 @@ function Feedback() {
 
       {/* Feedback Table */}
       <div className="bg-white rounded-lg shadow overflow-x-auto">
-        {filteredFeedback.length === 0 ? (
-          <p className="text-center py-8 text-gray-500">No feedback found.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-green-200 text-left text-gray-700">
-                <th className="p-3">ID</th>
-                <th className="p-3">Type</th>
-                <th className="p-3">Message</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Date Created</th>
-                <th className="p-3">Date Modified</th>
-                <th className="p-3">Status</th>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-green-200 text-left text-gray-700">
+              <th className="p-3">ID</th>
+              <th className="p-3">Type</th>
+              <th className="p-3">Message</th>
+              <th className="p-3">Email</th>
+              <th className="p-3">Date Created</th>
+              <th className="p-3">Date Modified</th>
+              <th className="p-3">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentFeedback.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="text-center py-8 text-gray-500">
+                  No feedback found.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {currentFeedback.map((f) => (
+            ) : (
+              currentFeedback.map((f) => (
                 <tr
                   key={f.id}
                   className="border-b hover:bg-gray-50 transition-colors cursor-pointer"
@@ -256,7 +263,6 @@ function Feedback() {
                     {(() => {
                       let allowedStatuses = [];
 
-                      // Determine allowed statuses based on type
                       if (f.type === "Suggestion") {
                         allowedStatuses = ["Open", "Reviewed"];
                       } else if (
@@ -265,10 +271,9 @@ function Feedback() {
                       ) {
                         allowedStatuses = ["Open", "Resolved", "In Progress"];
                       } else {
-                        allowedStatuses = ["Open"]; // fallback
+                        allowedStatuses = ["Open"];
                       }
 
-                      // Disable status change for "Resolved" or "Reviewed"
                       const isStatusEditable = !(
                         f.status === "Resolved" || f.status === "Reviewed"
                       );
@@ -276,14 +281,14 @@ function Feedback() {
                       return (
                         <select
                           value={f.status}
-                          onClick={(e) => e.stopPropagation()} // prevent opening modal
+                          onClick={(e) => e.stopPropagation()}
                           onChange={(e) =>
                             handleStatusChange(f.id, e.target.value)
                           }
                           className={`px-2 py-1 rounded-full text-xs font-medium ${
                             statusColors[f.status]
                           }`}
-                          disabled={!isStatusEditable} // Disable if status is "Resolved" or "Reviewed"
+                          disabled={!isStatusEditable}
                         >
                           {allowedStatuses.map((status) => (
                             <option key={status} value={status}>
@@ -295,10 +300,10 @@ function Feedback() {
                     })()}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* Modal (updated design) */}

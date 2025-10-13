@@ -54,7 +54,6 @@ describe("Reviews Component - CASE-090 Search Reviews", () => {
   it("filters reviews by ID, keyword, or email", async () => {
     renderWithProvider(<Reviews />);
 
-    // Wait for reviews to load
     await waitFor(() => {
       expect(screen.getByText("r1")).toBeInTheDocument();
       expect(screen.getByText("r2")).toBeInTheDocument();
@@ -63,7 +62,6 @@ describe("Reviews Component - CASE-090 Search Reviews", () => {
 
     const searchInput = screen.getByRole("textbox");
 
-    // Search by ID
     await userEvent.type(searchInput, "r1");
     await waitFor(() => {
       expect(screen.getByText("r1")).toBeInTheDocument();
@@ -71,10 +69,8 @@ describe("Reviews Component - CASE-090 Search Reviews", () => {
       expect(screen.queryByText("r3")).not.toBeInTheDocument();
     });
 
-    // Clear search
     await userEvent.clear(searchInput);
 
-    // Search by keyword
     await userEvent.type(searchInput, "support");
     await waitFor(() => {
       expect(screen.getByText("r3")).toBeInTheDocument();
