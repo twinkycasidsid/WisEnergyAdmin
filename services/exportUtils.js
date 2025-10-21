@@ -31,22 +31,7 @@ export const exportToPDF = async () => {
   const element = document.getElementById("report-template");
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
-  const worker = html2pdf()
-    .set({
-      margin: 0,
-      filename: `wisenergy_report_${timestamp}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ["avoid-all", "css", "legacy"] },
-    })
-    .from(element);
-
-  const pdf = await worker.toPdf().get("pdf");
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-
-  // Load both images first to get natural sizes
+  // Load images first so we can reserve exact space for them
   const loadImage = (src) =>
     new Promise((resolve, reject) => {
       const img = new Image();
@@ -55,34 +40,181 @@ export const exportToPDF = async () => {
       img.src = src;
     });
 
-  const header = await loadImage(headerImg);
-  const footer = await loadImage(footerImg);
+  const [header, footer] = await Promise.all([
+    loadImage(headerImg),
+    loadImage(footerImg),
+  ]);
 
-  const headerRatio = header.height / header.width;
-  const footerRatio = footer.height / footer.width;
+  // Use a temporary jsPDF to compute page dimensions up-front
+  const temp = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  const pageWidth = temp.internal.pageSize.getWidth();
+  const pageHeight = temp.internal.pageSize.getHeight();
 
-  const headerHeight = pageWidth * headerRatio;
-  const footerHeight = pageWidth * footerRatio;
+  // Compute header/footer heights keeping image aspect ratios, spanning full width
+  const headerHeight = pageWidth * (header.height / header.width);
+  const footerHeight = pageWidth * (footer.height / footer.width);
+  // Extra whitespace below the content above the footer (in mm)
+  const BOTTOM_EXTRA_MM = 8; // adjust as needed
 
-  const pageCount = pdf.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    pdf.setPage(i);
+  // Lean CSS-only behavior; let margins reserve header/footer space.
+  const cleanupNodes = [];
 
-    // Header at top
-    pdf.addImage(headerImg, "PNG", 0, 0, pageWidth, headerHeight);
+  // Apply page-break control so that:
+  // - a table header is kept with the first row
+  // - no table row is split across pages; if it doesn't fit, move it to next page
+  try {
+    const mmProbe = document.createElement("div");
+    mmProbe.style.position = "absolute";
+    mmProbe.style.visibility = "hidden";
+    mmProbe.style.width = "1mm";
+    document.body.appendChild(mmProbe);
+    const pxPerMM = mmProbe.getBoundingClientRect().width || 3.78; // fallback
+    mmProbe.remove();
 
-    // Footer at bottom
-    pdf.addImage(
-      footerImg,
-      "PNG",
-      0,
-      pageHeight - footerHeight,
-      pageWidth,
-      footerHeight
-    );
+    const pageHeightPx = pageHeight * pxPerMM;
+    const topMarginPx = headerHeight * pxPerMM;
+    const bottomMarginPx = (footerHeight + BOTTOM_EXTRA_MM) * pxPerMM;
+    const rootTop = element.getBoundingClientRect().top;
+
+    // Helper to compute remaining usable space on the current page below a top position
+    const remainingUsableBelow = (topPx) => {
+      const posInPage = topPx % pageHeightPx;
+      const contentStart = Math.max(posInPage, topMarginPx);
+      const contentEnd = pageHeightPx - bottomMarginPx;
+      return Math.max(0, contentEnd - contentStart);
+    };
+
+    const tables = Array.from(element.querySelectorAll("table"));
+    tables.forEach((tbl) => {
+      const thead = tbl.tHead;
+      const tbodies = Array.from(tbl.tBodies || []);
+      const firstBody = tbodies[0];
+      const firstRow = firstBody?.rows?.[0];
+
+      // Keep header with first row
+      if (thead) {
+        const hRect = thead.getBoundingClientRect();
+        const req = hRect.height + (firstRow?.getBoundingClientRect().height || 18);
+        const topPx = hRect.top - rootTop;
+        const remain = remainingUsableBelow(topPx);
+        if (remain < req + 2) {
+          const br = document.createElement("div");
+          br.className = "html2pdf__page-break";
+          br.style.pageBreakBefore = "always";
+          br.style.breakBefore = "page";
+          tbl.parentNode.insertBefore(br, tbl);
+          cleanupNodes.push(br);
+        }
+      }
+
+      // Prevent splitting within a row: if a row doesn't fully fit below,
+      // insert a page break before that row so it starts on the next page.
+      tbodies.forEach((tbody) => {
+        const rows = Array.from(tbody.rows || []);
+        rows.forEach((row) => {
+          const rRect = row.getBoundingClientRect();
+          const rTop = rRect.top - rootTop;
+          const rH = rRect.height || 18;
+          const remain = remainingUsableBelow(rTop);
+          if (remain < rH + 2) {
+            const br = document.createElement("tr");
+            br.className = "html2pdf__page-break";
+            br.style.pageBreakBefore = "always";
+            br.style.breakBefore = "page";
+            const td = document.createElement("td");
+            td.colSpan = row.cells.length || 1;
+            td.style.border = "none";
+            td.style.padding = "0";
+            td.style.height = "0";
+            br.appendChild(td);
+            row.parentNode.insertBefore(br, row);
+            cleanupNodes.push(br);
+          }
+        });
+      });
+    });
+  } catch (e) {
+    // If measurement fails, continue without pre-injected breaks
   }
 
-  pdf.save(`wisenergy_report_${timestamp}.pdf`);
+  try {
+    // Build the PDF with margins reserving header/footer space
+    // and minimal CSS allowing row splitting if necessary
+    const tmpStyle = document.createElement("style");
+    tmpStyle.setAttribute("data-export-style", "true");
+    tmpStyle.textContent = `
+      #report-template thead { display: table-header-group; }
+      #report-template tfoot { display: table-footer-group; }
+      #report-template tr, #report-template td, #report-template th { page-break-inside: avoid; break-inside: avoid; }
+    `;
+    document.head.appendChild(tmpStyle);
+    const worker = html2pdf()
+      .set({
+        // Reserve space for header + footer per page
+        margin: [headerHeight, 8, footerHeight + BOTTOM_EXTRA_MM, 8],
+        filename: `wisenergy_report_${timestamp}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          // Let html2canvas determine width naturally to avoid layout shifts
+        },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        // Use CSS-only pagebreak logic to avoid phantom last pages
+        pagebreak: {
+          mode: ["css"],
+        },
+      })
+      .from(element);
+
+    // Render to canvas first so we can estimate expected page count
+    const canvas = await worker.toCanvas().get("canvas");
+    const pdf = await worker.toPdf().get("pdf");
+
+    // Remove extra trailing pages beyond what the canvas height requires
+    const total = pdf.internal.getNumberOfPages();
+    // Estimate how many A4 pages are needed for the canvas image
+    const ratio = pageWidth / canvas.width;
+    // Account for reserved margins reducing usable height per page
+    const usablePerPage = pageHeight - headerHeight - (footerHeight + BOTTOM_EXTRA_MM);
+    const imgHeight = canvas.height * ratio; // in mm because we scaled to pageWidth
+    const expectedPages = Math.max(1, Math.ceil(imgHeight / usablePerPage));
+    if (total > expectedPages) {
+      for (let i = total; i > expectedPages; i--) {
+        pdf.deletePage(i);
+      }
+    }
+    // Also prune any trailing blank page introduced by rounding
+    const pruneTrailingBlank = () => {
+      let n = pdf.internal.getNumberOfPages();
+      while (n > 1) {
+        const ops = pdf.internal.pages?.[n];
+        const isBlank = !ops || (Array.isArray(ops) ? ops.length <= 2 : false);
+        if (isBlank) {
+          pdf.deletePage(n);
+          n--;
+        } else {
+          break;
+        }
+      }
+    };
+    pruneTrailingBlank();
+
+    const finalPageCount = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= finalPageCount; i++) {
+      pdf.setPage(i);
+      // Draw header/footer at their original positions
+      pdf.addImage(headerImg, "PNG", 0, 0, pageWidth, headerHeight);
+      pdf.addImage(footerImg, "PNG", 0, pageHeight - footerHeight, pageWidth, footerHeight);
+    }
+
+    pdf.save(`wisenergy_report_${timestamp}.pdf`);
+  } finally {
+    // Clean up any injected page-break nodes
+    cleanupNodes.forEach((n) => n.remove());
+    const s = document.querySelector('style[data-export-style="true"]');
+    if (s) s.remove();
+  }
 };
 
 // DOCX Export using docxtemplater
