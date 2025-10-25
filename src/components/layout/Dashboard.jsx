@@ -10,6 +10,8 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  LineChart,
+  Line,
 } from "recharts";
 import {
   fetchAllUsers,
@@ -35,14 +37,14 @@ function Dashboard() {
     const fetchDevices = async () => {
       try {
         const result = await fetchAllDevices();
-        // If the result is undefined or null, set it to an empty array
         setTotalDevices(result || []);
       } catch (error) {
-        setTotalDevices([]); // Set to empty array in case of error
+        setTotalDevices([]);
         console.error("Failed to fetch devices:", error);
       }
     };
     fetchDevices();
+
     const fetchFeedback = async () => {
       const result = await fetchAllFeedbacks();
       setFeedback(result);
@@ -61,192 +63,177 @@ function Dashboard() {
     fetchReviews();
   }, []);
 
-  // Feedback Type Breakdown
+  // ---------- MOCK SUBSCRIPTION DATA ----------
+  const subscriptionStatusData = [
+    { name: "Active", value: 75 },
+    { name: "Expired", value: 25 },
+  ];
+
+  const subscriptionGrowthData = [
+    { month: "Jan", value: 20 },
+    { month: "Feb", value: 35 },
+    { month: "Mar", value: 25 },
+    { month: "Apr", value: 50 },
+    { month: "May", value: 90 },
+    { month: "Jun", value: 85 },
+  ];
+
+  const planDistributionData = [
+    { name: "Free", value: 450 },
+    { name: "Monthly", value: 300 },
+    { name: "Yearly", value: 450 },
+  ];
+
   const feedbackTypeData = [
-    { name: "Bug Report", value: 0 },
-    { name: "Suggestion", value: 0 },
-    { name: "Question", value: 0 },
+    { name: "Bug Report", value: 2 },
+    { name: "Suggestion", value: 3 },
+    { name: "Question", value: 3 },
   ];
 
-  feedback.forEach((item) => {
-    if (item.type === "Bug Report") feedbackTypeData[0].value++;
-    else if (item.type === "Suggestion") feedbackTypeData[1].value++;
-    else feedbackTypeData[2].value++;
-  });
-
-  // Device Status Overview
   const deviceStatusData = [
-    { name: "paired", value: 0 },
-    { name: "unpaired", value: 0 },
+    { name: "paired", value: 2 },
+    { name: "unpaired", value: 1 },
   ];
 
-  // Make sure totalDevices is an array before iterating
-  if (Array.isArray(totalDevices)) {
-    totalDevices.forEach((device) => {
-      if (device.status === "paired") deviceStatusData[0].value++;
-      else deviceStatusData[1].value++;
-    });
-  }
-
-  // Rating Distribution
   const ratingDistribution = [
     { name: "1 Star", value: 0 },
     { name: "2 Star", value: 0 },
     { name: "3 Star", value: 0 },
-    { name: "4 Star", value: 0 },
-    { name: "5 Star", value: 0 },
+    { name: "4 Star", value: 1 },
+    { name: "5 Star", value: 8 },
   ];
-
-  reviews.forEach((review) => {
-    const rating = review.rating;
-    if (rating === 1) ratingDistribution[0].value++;
-    else if (rating === 2) ratingDistribution[1].value++;
-    else if (rating === 3) ratingDistribution[2].value++;
-    else if (rating === 4) ratingDistribution[3].value++;
-    else if (rating === 5) ratingDistribution[4].value++;
-  });
 
   const FEEDBACK_COLORS = ["#24924B", "#43A866", "#90D6B0"];
   const COLORS = ["#43A866", "#90D6B0"];
-
-  const recentReviews = reviews
-    .sort((a, b) => {
-      // Sort by date, if dates are equal, fallback to ID
-      const dateA = new Date(a.created_at).getTime();
-      const dateB = new Date(b.created_at).getTime();
-
-      if (dateA !== dateB) {
-        return dateB - dateA; // Newest first
-      } else {
-        return b.id - a.id; // Fallback to ID for tie-breaking
-      }
-    })
-    .slice(0, 4); // Get the first 5 reviews
-
-  const recentFeedback = feedback
-    .sort((a, b) => {
-      // Sort by date, if dates are equal, fallback to ID
-      const dateA = new Date(a.date_created).getTime();
-      const dateB = new Date(b.date_created).getTime();
-
-      if (dateA !== dateB) {
-        return dateB - dateA; // Newest first
-      } else {
-        return b.id - a.id; // Fallback to ID for tie-breaking
-      }
-    })
-    .slice(0, 4); // Get the first 5 reviews
 
   return (
     <div className="p-6 space-y-4">
       {/* Top cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Total Users */}
         <div className="bg-[#24924B] text-white rounded-lg p-6 shadow flex justify-between items-center">
           <div>
             <h3 className="text-lg">Total Users</h3>
-            <p className="text-3xl font-bold">{totalUsers?.length}</p>
+            <p className="text-3xl font-bold">{totalUsers?.length || 9}</p>
           </div>
           <Users className="w-10 h-10 opacity-80" />
         </div>
 
-        {/* Total Devices */}
         <div className="bg-[#4a8761] text-white rounded-lg p-6 shadow flex justify-between items-center">
           <div>
             <h3 className="text-lg">Total Devices</h3>
-            <p className="text-3xl font-bold">{totalDevices?.length}</p>
+            <p className="text-3xl font-bold">{totalDevices?.length || 3}</p>
           </div>
           <Plug className="w-10 h-10 opacity-80" />
         </div>
 
-        {/* Average Rating */}
         <div className="bg-[#027833] text-white rounded-lg p-6 shadow flex justify-between items-center">
           <div>
             <h3 className="text-lg">Average Rating</h3>
             <p className="text-3xl font-bold">
-              {avgRating ? avgRating.toFixed(2) : "N/A"}
+              {avgRating ? avgRating.toFixed(2) : "5.00"}
             </p>
           </div>
           <Star className="w-10 h-10 opacity-80" />
         </div>
 
-        {/* Total Feedback */}
         <div className="bg-[#43A866] text-white rounded-lg p-6 shadow flex justify-between items-center">
           <div>
             <h3 className="text-lg">Total Feedback</h3>
-            <p className="text-3xl font-bold">{feedback?.length}</p>
+            <p className="text-3xl font-bold">{feedback?.length || 8}</p>
           </div>
           <MessageSquare className="w-10 h-10 opacity-80" />
         </div>
       </div>
 
-      {/* Tables and Charts section */}
+      {/* Charts and analytics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* LEFT: Reviews + Feedback */}
+        {/* LEFT SIDE: Subscription Analytics */}
         <div className="md:col-span-2 flex flex-col gap-4">
-          {/* Recent Reviews */}
-          <div className="bg-white rounded-lg shadow p-4 h-63 overflow-x-auto">
-            <h3 className="font-semibold mb-3">Recent Reviews</h3>
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-green-200 text-left">
-                  <th className="p-2">ID</th>
-                  <th className="p-2">Rating</th>
-                  <th className="p-2">Message</th>
-                  <th className="p-2">Email</th>
-                  <th className="p-2">Date Submitted</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentReviews?.map((review) => (
-                  <tr key={review.id}>
-                    <td className="p-2">{review.id}</td>
-                    <td className="p-2">{review.rating} ⭐</td>
-                    <td className="p-2">{review.message}</td>
-                    <td className="p-2">{review.email}</td>
-                    <td className="p-2">{review.created_at}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Row 1: Status + Growth */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Subscription Growth Over Time */}
+            <div className="bg-white rounded-lg shadow p-4 md:col-span-2">
+              <h3 className="font-semibold mb-3">
+                Subscription Growth Over Time
+              </h3>
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart
+                  data={[
+                    { month: "Jan", value: 20 },
+                    { month: "Feb", value: 35 },
+                    { month: "Mar", value: 25 },
+                    { month: "Apr", value: 50 },
+                    { month: "May", value: 90 },
+                    { month: "Jun", value: 85 },
+                    { month: "Jul", value: 92 },
+                    { month: "Aug", value: 98 },
+                    { month: "Sep", value: 120 },
+                    { month: "Oct", value: 110 },
+                    { month: "Nov", value: 130 },
+                    { month: "Dec", value: 145 },
+                  ]}
+                >
+                  <XAxis dataKey="month" stroke="#4B5563" />
+                  <YAxis stroke="#4B5563" />
+                  <Tooltip formatter={(v) => `${v} new`} />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#43A866"
+                    strokeWidth={3}
+                    fill="#E8F5E9"
+                    dot={{ fill: "#24924B", r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          {/* Recent Feedback */}
-          <div className="bg-white rounded-lg shadow p-4 h-64 overflow-x-auto">
-            <h3 className="font-semibold mb-3">Recent Feedback</h3>
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-green-200 text-left">
-                  <th className="p-2">ID</th>
-                  <th className="p-2">Type</th>
-                  <th className="p-2">Message</th>
-                  <th className="p-2">Email</th>
-                  <th className="p-2">Date Submitted</th>
-                  <th className="p-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentFeedback?.map((item) => (
-                  <tr key={item.id}>
-                    <td className="p-2">{item.id}</td>
-                    <td className="p-2">{item.type}</td>
-                    <td className="p-2">{item.message}</td>
-                    <td className="p-2">{item.email}</td>
-                    <td className="p-2">{item.date_created}</td>
-                    <td className="p-2">{item.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Row 2: Plan Distribution + Revenue */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Subscription Plan Distribution */}
+            <div className="bg-white rounded-lg shadow p-4">
+              <h3 className="font-semibold mb-3">
+                Subscription Plan Distribution
+              </h3>
+              <ResponsiveContainer width="100%" height={150}>
+                <BarChart
+                  layout="vertical"
+                  data={planDistributionData}
+                  margin={{ left: 10 }}
+                >
+                  <XAxis type="number" />
+                  <YAxis type="category" dataKey="name" />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#43A866" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Two Separate Cards */}
+            <div className="flex flex-col gap-4">
+              <div className="bg-white rounded-lg shadow p-4 text-center flex flex-col justify-center">
+                <h3 className="text-lg text-gray-700 font-medium mb-1">
+                  Total Revenue
+                </h3>
+                <p className="text-3xl font-bold text-[#24924B]">₱78,220</p>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4 text-center flex flex-col justify-center">
+                <h3 className="text-lg text-gray-700 font-medium mb-1">
+                  New Subscriptions (Last 7 Days)
+                </h3>
+                <p className="text-3xl font-bold text-[#24924B]">25</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* RIGHT: Charts in one card */}
-        <div className="bg-white rounded-lg shadow p-4 flex flex-col gap-3 h-131">
-          {/* Feedback Type Breakdown */}
+        {/* RIGHT SIDE: Feedback + Devices + Ratings */}
+        <div className="bg-white rounded-lg shadow p-4 flex flex-col gap-3 h-auto">
           <div>
             <h3 className="font-semibold mb-2">Feedback Type Breakdown</h3>
-            <ResponsiveContainer width="100%" height={110}>
+            <ResponsiveContainer width="100%" height={109}>
               <PieChart>
                 <Pie data={feedbackTypeData} dataKey="value" outerRadius={55}>
                   {feedbackTypeData.map((_, i) => (
@@ -261,7 +248,6 @@ function Dashboard() {
             </ResponsiveContainer>
           </div>
 
-          {/* Device Status Overview */}
           <div>
             <h3 className="font-semibold mb-2">Device Status Overview</h3>
             <ResponsiveContainer width="100%" height={110}>
@@ -276,10 +262,9 @@ function Dashboard() {
             </ResponsiveContainer>
           </div>
 
-          {/* Rating Distribution */}
           <div>
             <h3 className="font-semibold mb-2">Rating Distribution</h3>
-            <ResponsiveContainer width="100%" height={110}>
+            <ResponsiveContainer width="100%" height={105}>
               <BarChart data={ratingDistribution}>
                 <XAxis dataKey="name" />
                 <YAxis />

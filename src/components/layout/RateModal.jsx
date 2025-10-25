@@ -33,8 +33,11 @@ function RateModal({ isOpen, onClose, onSubmit, initialData, mode }) {
 
         {/* City */}
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">City</label>
+          <label htmlFor="city" className="block text-sm font-medium mb-1">
+            City
+          </label>
           <select
+            id="city"
             value={formData.city}
             onChange={(e) => setFormData({ ...formData, city: e.target.value })}
             className="w-full border rounded px-3 py-2"
@@ -47,19 +50,27 @@ function RateModal({ isOpen, onClose, onSubmit, initialData, mode }) {
 
         {/* Month */}
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Month</label>
+          <label htmlFor="month" className="block text-sm font-medium mb-1">
+            Month
+          </label>
           <input
+            id="month"
             type="month"
-            value={formData.month}
-            onChange={(e) => setFormData({ ...formData, month: e.target.value })}
             className="w-full border rounded px-3 py-2"
+            value={formData.month}
+            onChange={(e) =>
+              setFormData({ ...formData, month: e.target.value })
+            }
           />
         </div>
 
         {/* Rate */}
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Rate (₱/kWh)</label>
+          <label htmlFor="rate" className="block text-sm font-medium mb-1">
+            Rate (₱/kWh)
+          </label>
           <input
+            id="rate"
             type="number"
             step="0.01"
             value={formData.rate}

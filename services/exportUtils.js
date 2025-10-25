@@ -59,9 +59,7 @@ export const exportToPDF = async () => {
   // Lean CSS-only behavior; let margins reserve header/footer space.
   const cleanupNodes = [];
 
-  // Apply page-break control so that:
-  // - a table header is kept with the first row
-  // - no table row is split across pages; if it doesn't fit, move it to next page
+  // Pre-calculate where page content can flow (accounting for header/footer)
   try {
     const mmProbe = document.createElement("div");
     mmProbe.style.position = "absolute";
@@ -76,7 +74,6 @@ export const exportToPDF = async () => {
     const bottomMarginPx = (footerHeight + BOTTOM_EXTRA_MM) * pxPerMM;
     const rootTop = element.getBoundingClientRect().top;
 
-    // Helper to compute remaining usable space on the current page below a top position
     const remainingUsableBelow = (topPx) => {
       const posInPage = topPx % pageHeightPx;
       const contentStart = Math.max(posInPage, topMarginPx);
@@ -84,18 +81,45 @@ export const exportToPDF = async () => {
       return Math.max(0, contentEnd - contentStart);
     };
 
+    // 1) Keep each section title (h2) with its table header + first data row
+    const headings = Array.from(element.querySelectorAll("h2"));
+    headings.forEach((h2) => {
+      // Find the next table after this heading
+      let sib = h2.nextElementSibling;
+      while (sib && sib.tagName !== "TABLE") sib = sib.nextElementSibling;
+      if (!sib || sib.tagName !== "TABLE") return;
+
+      const thead = sib.tHead;
+      const firstBody = sib.tBodies && sib.tBodies[0];
+      const firstRow = firstBody && firstBody.rows && firstBody.rows[0];
+
+      const titleH = h2.getBoundingClientRect().height || 0;
+      const headerH = thead ? thead.getBoundingClientRect().height : 0;
+      const firstRowH = firstRow ? firstRow.getBoundingClientRect().height : 18;
+      const need = titleH + headerH + firstRowH;
+      const topPx = h2.getBoundingClientRect().top - rootTop;
+      const remain = remainingUsableBelow(topPx);
+      if (remain < need + 2) {
+        const br = document.createElement("div");
+        br.className = "html2pdf__page-break";
+        br.style.pageBreakBefore = "always";
+        br.style.breakBefore = "page";
+        h2.parentNode.insertBefore(br, h2);
+        cleanupNodes.push(br);
+      }
+    });
+
+    // 2) Ensure a table header is kept with the first row for tables without titles
     const tables = Array.from(element.querySelectorAll("table"));
     tables.forEach((tbl) => {
       const thead = tbl.tHead;
-      const tbodies = Array.from(tbl.tBodies || []);
-      const firstBody = tbodies[0];
-      const firstRow = firstBody?.rows?.[0];
-
-      // Keep header with first row
+      const firstBody = tbl.tBodies && tbl.tBodies[0];
+      const firstRow = firstBody && firstBody.rows && firstBody.rows[0];
       if (thead) {
-        const hRect = thead.getBoundingClientRect();
-        const req = hRect.height + (firstRow?.getBoundingClientRect().height || 18);
-        const topPx = hRect.top - rootTop;
+        const headerH = thead.getBoundingClientRect().height || 0;
+        const firstRowH = firstRow ? firstRow.getBoundingClientRect().height : 18;
+        const req = headerH + firstRowH;
+        const topPx = thead.getBoundingClientRect().top - rootTop;
         const remain = remainingUsableBelow(topPx);
         if (remain < req + 2) {
           const br = document.createElement("div");
@@ -107,11 +131,10 @@ export const exportToPDF = async () => {
         }
       }
 
-      // Prevent splitting within a row: if a row doesn't fully fit below,
-      // insert a page break before that row so it starts on the next page.
-      tbodies.forEach((tbody) => {
-        const rows = Array.from(tbody.rows || []);
-        rows.forEach((row) => {
+      // 3) Prevent a page break within any row; if a row doesn't fit, move it
+      const bodies = Array.from(tbl.tBodies || []);
+      bodies.forEach((tbody) => {
+        Array.from(tbody.rows || []).forEach((row) => {
           const rRect = row.getBoundingClientRect();
           const rTop = rRect.top - rootTop;
           const rH = rRect.height || 18;

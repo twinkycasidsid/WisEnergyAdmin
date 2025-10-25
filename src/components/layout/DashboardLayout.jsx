@@ -9,6 +9,7 @@ import Feedback from "./Feedback";
 import Exports from "./Exports";
 import Rates from "./Rates";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
+import Subscriptions from "./Subscriptions";
 
 function DashboardLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -40,6 +41,9 @@ function DashboardLayout() {
 
           {/* Users */}
           <Route path="users" element={<Users />} />
+           
+           {/* Subscription Reports */}
+          <Route path="subscriptions" element={<Subscriptions/>} />
 
           {/* Devices */}
           <Route path="devices" element={<Devices />} />

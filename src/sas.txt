@@ -8,6 +8,10 @@ npx vitest tests/DEVICES_CASE085.test.jsx
 
 npx vitest tests/REVIEWS_CASE090.test.jsx 
 
-npx vitest tests/FEEDBACK_CASE093.test.jsx 
+npx vitest tests/FEEDBACK_CASE097.test.jsx 
+
+npx vitest tests/FORGOT_PASSWORD_CASE014.test.jsx
+
+npx vitest tests/RATES_CASE103.test.jsx
 
 

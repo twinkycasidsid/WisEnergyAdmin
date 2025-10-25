@@ -40,7 +40,7 @@ function Rates() {
     (a, b) => b - a
   );
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 7;
 
   // 🧩 Filter Logic — FIXED MONTH FILTER
   useEffect(() => {
@@ -79,39 +79,56 @@ function Rates() {
     setMonthFilter("");
     setFilteredRates(rates);
   };
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteRate(deleteTarget.id);
+      const updated = await fetchAllRates();
+      setRates(updated);
+      setShowConfirmModal(false);
+      setDeleteTarget(null);
+    } catch (error) {
+      console.error("Delete failed:", error);
+    }
+  };
 
   const handleSubmit = async (formData) => {
+    const { city, month, rate } = formData;
+
+    // ✅ Validation for missing fields
+    if (!city || !month || !rate) {
+      alert("Please fill out all fields before submitting.");
+      return; // ← make sure this line exists!
+    }
+
+    const year = formData.year || formData.month.split("-")[0];
+    const duplicate = rates.some(
+      (r) =>
+        r.city === city &&
+        String(r.year) === String(year) &&
+        String(r.month).padStart(2, "0") === String(month).padStart(2, "0")
+    );
+
+    if (duplicate) {
+      alert("Rate for this city and month already exists.");
+      return;
+    }
+
     const payload = {
-      city: formData.city,
-      year: parseInt(formData.month.split("-")[0]),
-      month: formData.month.split("-")[1],
-      rate: parseFloat(formData.rate),
+      city,
+      year: parseInt(year),
+      month,
+      rate: parseFloat(rate),
     };
     const res = await addOrUpdateRate(payload);
-
-    if (res.success) {
+    if (res?.success) {
       const updated = await fetchAllRates();
       setRates(updated);
       setShowRateModal(false);
       setEditRate(null);
     } else {
-      alert(res.message);
+      alert(res?.message || "Error adding rate");
     }
-  };
-
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    const { city, month } = deleteTarget;
-    const [year, m] = month.split("-");
-    const res = await deleteRate(city, year, m);
-
-    if (res.success) {
-      setRates((prev) => prev.filter((x) => x.id !== deleteTarget.id));
-    } else {
-      alert(res.message);
-    }
-    setDeleteTarget(null);
-    setShowConfirmModal(false);
   };
 
   return (
@@ -207,6 +224,7 @@ function Rates() {
           {/* Right side: Add Button */}
           <div className="ml-auto">
             <button
+              aria-label="Add Rate"
               onClick={() => {
                 setEditRate(null);
                 setShowRateModal(true);

@@ -36,10 +36,11 @@ export default function ReportTemplate({ data }) {
       {/* Content (safe margins based on header/footer height) */}
       <div
         style={{
-          marginTop: "50mm", // leave space equal to header height in PDF
-          marginBottom: "25mm",
+          // PDF export reserves header/footer using margins; avoid doubling here
+          marginTop: "0mm",
+          marginBottom: "0mm",
           marginLeft: "8mm",
-          marginRight: "8m", // leave space equal to footer height in PDF
+          marginRight: "8mm",
         }}
       >
         <h1 style={{ textAlign: "center", marginBottom: "20px" }}>

@@ -1,8 +1,8 @@
 import axios from "axios";
 
 const api = axios.create({
-  // baseURL: "https://wisenergy-backend.onrender.com",
-  baseURL: 'http://192.168.1.9:10000',
+  baseURL: "https://wisenergy-backend.onrender.com",
+  // baseURL: 'http://192.168.1.9:10000',
   timeout: 5000,
   headers: {
     "Content-Type": "application/json",
@@ -25,25 +25,26 @@ export const login = async (email, password) => {
 export const generate_otp = async (email, userVerification) => {
   try {
     const response = await api.post(`/generate-otp`, {
-      email, userVerification
-    })
+      email,
+      userVerification,
+    });
     return { success: true, message: response.data.message };
   } catch (error) {
     return { success: false, message: error.response.data.detail };
   }
-}
+};
 
 export const verify_otp = async (email, code) => {
   try {
     const response = await api.post(`/verify-otp`, {
       email,
-      code
+      code,
     });
     return { success: true, data: response.data };
   } catch (error) {
     return {
       success: false,
-      message: error.response?.data?.detail || "OTP verification failed"
+      message: error.response?.data?.detail || "OTP verification failed",
     };
   }
 };
@@ -52,13 +53,13 @@ export const reset_password = async (email, password) => {
   try {
     const response = await api.post(`/reset-password`, {
       email,
-      new_password: password
-    })
-    return { success: true, message: response.data.message }
+      new_password: password,
+    });
+    return { success: true, message: response.data.message };
   } catch (error) {
     return { success: false, message: error.response.data.detail };
   }
-}
+};
 export const fetchAllUsers = async () => {
   try {
     const response = await api.get("/users");

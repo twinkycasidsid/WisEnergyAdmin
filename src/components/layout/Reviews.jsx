@@ -10,7 +10,7 @@ function Reviews() {
   const [ratingFilter, setRatingFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 7;
   const [selectedReview, setSelectedReview] = useState(null);
 
   const startIndex = (currentPage - 1) * itemsPerPage;
