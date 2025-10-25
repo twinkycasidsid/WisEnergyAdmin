@@ -40,7 +40,7 @@ function Rates() {
     (a, b) => b - a
   );
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 7;
+  const itemsPerPage = 8;
 
   // 🧩 Filter Logic — FIXED MONTH FILTER
   useEffect(() => {
@@ -79,56 +79,39 @@ function Rates() {
     setMonthFilter("");
     setFilteredRates(rates);
   };
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    try {
-      await deleteRate(deleteTarget.id);
-      const updated = await fetchAllRates();
-      setRates(updated);
-      setShowConfirmModal(false);
-      setDeleteTarget(null);
-    } catch (error) {
-      console.error("Delete failed:", error);
-    }
-  };
 
   const handleSubmit = async (formData) => {
-    const { city, month, rate } = formData;
-
-    // ✅ Validation for missing fields
-    if (!city || !month || !rate) {
-      alert("Please fill out all fields before submitting.");
-      return; // ← make sure this line exists!
-    }
-
-    const year = formData.year || formData.month.split("-")[0];
-    const duplicate = rates.some(
-      (r) =>
-        r.city === city &&
-        String(r.year) === String(year) &&
-        String(r.month).padStart(2, "0") === String(month).padStart(2, "0")
-    );
-
-    if (duplicate) {
-      alert("Rate for this city and month already exists.");
-      return;
-    }
-
     const payload = {
-      city,
-      year: parseInt(year),
-      month,
-      rate: parseFloat(rate),
+      city: formData.city,
+      year: parseInt(formData.month.split("-")[0]),
+      month: formData.month.split("-")[1],
+      rate: parseFloat(formData.rate),
     };
     const res = await addOrUpdateRate(payload);
-    if (res?.success) {
+
+    if (res.success) {
       const updated = await fetchAllRates();
       setRates(updated);
       setShowRateModal(false);
       setEditRate(null);
     } else {
-      alert(res?.message || "Error adding rate");
+      alert(res.message);
     }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    const { city, year, month } = deleteTarget;
+
+    const res = await deleteRate(city, year, month.padStart(2, "0"));
+
+    if (res.success) {
+      setRates((prev) => prev.filter((x) => x.id !== deleteTarget.id));
+    } else {
+      alert(res.message);
+    }
+    setDeleteTarget(null);
+    setShowConfirmModal(false);
   };
 
   return (
@@ -196,8 +179,8 @@ function Rates() {
               >
                 {monthFilter
                   ? new Date(monthFilter).toLocaleString("default", {
-                      month: "long",
-                    })
+                    month: "long",
+                  })
                   : "Select Month"}
                 <input
                   id="month"
@@ -224,7 +207,6 @@ function Rates() {
           {/* Right side: Add Button */}
           <div className="ml-auto">
             <button
-              aria-label="Add Rate"
               onClick={() => {
                 setEditRate(null);
                 setShowRateModal(true);
@@ -319,11 +301,10 @@ function Rates() {
               <button
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                 disabled={currentPage === 1}
-                className={`px-3 py-1 border rounded ${
-                  currentPage === 1
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:bg-gray-100"
-                }`}
+                className={`px-3 py-1 border rounded ${currentPage === 1
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-100"
+                  }`}
               >
                 &lt;
               </button>
@@ -341,16 +322,15 @@ function Rates() {
                 }
                 disabled={
                   currentPage ===
-                    Math.ceil(filteredRates.length / itemsPerPage) ||
+                  Math.ceil(filteredRates.length / itemsPerPage) ||
                   filteredRates.length === 0
                 }
-                className={`px-3 py-1 border rounded ${
-                  currentPage ===
-                    Math.ceil(filteredRates.length / itemsPerPage) ||
+                className={`px-3 py-1 border rounded ${currentPage ===
+                  Math.ceil(filteredRates.length / itemsPerPage) ||
                   filteredRates.length === 0
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:bg-gray-100"
-                }`}
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-100"
+                  }`}
               >
                 &gt;
               </button>
