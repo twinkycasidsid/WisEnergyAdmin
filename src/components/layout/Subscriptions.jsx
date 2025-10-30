@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Filter, RotateCcw, X } from "lucide-react";
 import { useSearch } from "../SearchContext";
+import { fetchAllSubscriptions } from "../../../services/apiService";
 
 function Subscriptions() {
   const { searchQuery } = useSearch();
@@ -15,57 +16,29 @@ function Subscriptions() {
   const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSubscription, setSelectedSubscription] = useState(null);
-  const itemsPerPage = 7;
+  const [loading, setLoading] = useState(true);
 
+  const itemsPerPage = 7;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const totalPages = Math.ceil(filteredSubscriptions.length / itemsPerPage);
   const currentSubscriptions = filteredSubscriptions.slice(startIndex, endIndex);
 
-  // Mock sample data
+  // ✅ Fetch from backend
   useEffect(() => {
-    const mockData = [
-      {
-        subscription_id: "SUB001",
-        user_id: "USR001",
-        plan_type: "Monthly",
-        start_date: "2025-09-01",
-        end_date: null,
-        status: "Active",
-        payment_reference: null,
-      },
-      {
-        subscription_id: "SUB002",
-        user_id: "USR002",
-        plan_type: "Monthly",
-        start_date: "2025-08-10",
-        end_date: "2025-09-10",
-        status: "Expired",
-        payment_reference: "GCASH12345",
-      },
-      {
-        subscription_id: "SUB003",
-        user_id: "USR003",
-        plan_type: "Yearly",
-        start_date: "2025-06-05",
-        end_date: "2026-06-05",
-        status: "Active",
-        payment_reference: "BANK56789",
-      },
-      {
-        subscription_id: "SUB004",
-        user_id: "USR004",
-        plan_type: "Monthly",
-        start_date: "2025-10-01",
-        end_date: "2025-11-01",
-        status: "Pending",
-        payment_reference: "GCASH78910",
-      },
-    ];
-    setSubscriptions(mockData);
-    setFilteredSubscriptions(mockData);
+    const loadData = async () => {
+      setLoading(true);
+      const res = await fetchAllSubscriptions();
+      if (res.success) {
+        setSubscriptions(res.data);
+        setFilteredSubscriptions(res.data);
+      }
+      setLoading(false);
+    };
+    loadData();
   }, []);
 
+  // ✅ Filtering logic
   useEffect(() => {
     let filtered = subscriptions;
 
@@ -129,6 +102,7 @@ function Subscriptions() {
               <option value="">Status</option>
               <option value="Active">Active</option>
               <option value="Expired">Expired</option>
+              <option value="Pending">Pending</option>
             </select>
           </div>
 
@@ -145,59 +119,65 @@ function Subscriptions() {
         </div>
       </div>
 
-      {/* Subscriptions Table */}
+      {/* Table */}
       <div className="bg-white rounded-lg shadow overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-green-200 text-left text-gray-700">
-              <th className="p-3">Subscription ID</th>
-              <th className="p-3">User ID</th>
-              <th className="p-3">Plan Type</th>
-              <th className="p-3">Start Date</th>
-              <th className="p-3">End Date</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Payment Reference</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentSubscriptions.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-center py-8 text-gray-500">
-                  No subscriptions found.
-                </td>
+        {loading ? (
+          <div className="text-center py-10 text-gray-500 text-sm">
+            Loading subscriptions...
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-green-200 text-left text-gray-700">
+                <th className="p-3">Subscription ID</th>
+                <th className="p-3">User ID</th>
+                <th className="p-3">Plan Type</th>
+                <th className="p-3">Start Date</th>
+                <th className="p-3">End Date</th>
+                <th className="p-3">Status</th>
+                <th className="p-3">Payment Reference</th>
               </tr>
-            ) : (
-              currentSubscriptions.map((s) => (
-                <tr
-                  key={s.subscription_id}
-                  onClick={() => setSelectedSubscription(s)}
-                  className="border-b hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <td className="p-3">{s.subscription_id}</td>
-                  <td className="p-3">{s.user_id}</td>
-                  <td className="p-3">{s.plan_type}</td>
-                  <td className="p-3">{s.start_date}</td>
-                  <td className="p-3">{s.end_date || "—"}</td>
-                  <td
-                    className={`p-3 font-semibold ${s.status === "Active"
-                      ? "text-green-600"
-                      : s.status === "Expired"
-                        ? "text-red-500"
-                        : "text-yellow-500"
-                      }`}
-                  >
-                    {s.status}
+            </thead>
+            <tbody>
+              {currentSubscriptions.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-gray-500">
+                    No subscriptions found.
                   </td>
-                  <td className="p-3">{s.payment_reference || "—"}</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                currentSubscriptions.map((s) => (
+                  <tr
+                    key={s.subscription_id}
+                    onClick={() => setSelectedSubscription(s)}
+                    className="border-b hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <td className="p-3">{s.subscription_id}</td>
+                    <td className="p-3">{s.user_id}</td>
+                    <td className="p-3">{s.plan_type}</td>
+                    <td className="p-3">{s.start_date}</td>
+                    <td className="p-3">{s.end_date || "—"}</td>
+                    <td
+                      className={`p-3 font-semibold ${s.status === "Active"
+                          ? "text-green-600"
+                          : s.status === "Expired"
+                            ? "text-red-500"
+                            : "text-yellow-500"
+                        }`}
+                    >
+                      {s.status}
+                    </td>
+                    <td className="p-3">{s.payment_reference || "—"}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* Pagination */}
-      {filteredSubscriptions.length > 0 && (
+      {!loading && filteredSubscriptions.length > 0 && (
         <div className="flex justify-between items-center text-sm text-gray-600 mt-4">
           <p>
             Showing {startIndex + 1}–
@@ -210,8 +190,8 @@ function Subscriptions() {
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
               className={`px-3 py-1 border rounded ${currentPage === 1
-                ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-gray-100"
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-100"
                 }`}
             >
               &lt;
@@ -225,8 +205,8 @@ function Subscriptions() {
               }
               disabled={currentPage === totalPages || totalPages === 0}
               className={`px-3 py-1 border rounded ${currentPage === totalPages || totalPages === 0
-                ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-gray-100"
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-100"
                 }`}
             >
               &gt;
@@ -235,7 +215,7 @@ function Subscriptions() {
         </div>
       )}
 
-      {/* Subscription Modal */}
+      {/* Modal */}
       {selectedSubscription && (
         <div
           onClick={() => setSelectedSubscription(null)}
@@ -269,10 +249,10 @@ function Subscriptions() {
               <strong>Status:</strong>{" "}
               <span
                 className={`font-semibold ${selectedSubscription.status === "Active"
-                  ? "text-green-600"
-                  : selectedSubscription.status === "Expired"
-                    ? "text-red-500"
-                    : "text-yellow-500"
+                    ? "text-green-600"
+                    : selectedSubscription.status === "Expired"
+                      ? "text-red-500"
+                      : "text-yellow-500"
                   }`}
               >
                 {selectedSubscription.status}
