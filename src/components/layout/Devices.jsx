@@ -5,6 +5,10 @@ import { useSearch } from "../SearchContext";
 
 function Devices() {
   const { searchQuery } = useSearch();
+
+  useEffect(() => {
+    document.title = "Devices | WisEnergy";
+  }, []);
   const [devices, setDevices] = useState([]);
   const [filteredDevices, setFilteredDevices] = useState([]);
   const [startDateFilter, setStartDateFilter] = useState("");

@@ -4,6 +4,11 @@ import { useSearch } from "../SearchContext";
 
 function Subscriptions() {
   const { searchQuery } = useSearch();
+
+  useEffect(() => {
+    document.title = "Subscriptions | WisEnergy";
+  }, []);
+
   const [subscriptions, setSubscriptions] = useState([]);
   const [filteredSubscriptions, setFilteredSubscriptions] = useState([]);
   const [planFilter, setPlanFilter] = useState("");
@@ -174,13 +179,12 @@ function Subscriptions() {
                   <td className="p-3">{s.start_date}</td>
                   <td className="p-3">{s.end_date || "—"}</td>
                   <td
-                    className={`p-3 font-semibold ${
-                      s.status === "Active"
-                        ? "text-green-600"
-                        : s.status === "Expired"
+                    className={`p-3 font-semibold ${s.status === "Active"
+                      ? "text-green-600"
+                      : s.status === "Expired"
                         ? "text-red-500"
                         : "text-yellow-500"
-                    }`}
+                      }`}
                   >
                     {s.status}
                   </td>
@@ -205,11 +209,10 @@ function Subscriptions() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
-              className={`px-3 py-1 border rounded ${
-                currentPage === 1
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-3 py-1 border rounded ${currentPage === 1
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:bg-gray-100"
+                }`}
             >
               &lt;
             </button>
@@ -221,11 +224,10 @@ function Subscriptions() {
                 setCurrentPage((p) => (p < totalPages ? p + 1 : p))
               }
               disabled={currentPage === totalPages || totalPages === 0}
-              className={`px-3 py-1 border rounded ${
-                currentPage === totalPages || totalPages === 0
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-3 py-1 border rounded ${currentPage === totalPages || totalPages === 0
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:bg-gray-100"
+                }`}
             >
               &gt;
             </button>
@@ -266,13 +268,12 @@ function Subscriptions() {
             <p className="text-sm text-gray-600 mb-2">
               <strong>Status:</strong>{" "}
               <span
-                className={`font-semibold ${
-                  selectedSubscription.status === "Active"
-                    ? "text-green-600"
-                    : selectedSubscription.status === "Expired"
+                className={`font-semibold ${selectedSubscription.status === "Active"
+                  ? "text-green-600"
+                  : selectedSubscription.status === "Expired"
                     ? "text-red-500"
                     : "text-yellow-500"
-                }`}
+                  }`}
               >
                 {selectedSubscription.status}
               </span>
