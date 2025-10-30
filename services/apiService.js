@@ -11,7 +11,7 @@ const api = axios.create({
 
 export const login = async (email, password) => {
   try {
-    const response = await api.post("/login", { email, password });
+    const response = await api.post("/admin/login", { email, password });
     return { success: true, data: response.data };
   } catch (error) {
     return {
