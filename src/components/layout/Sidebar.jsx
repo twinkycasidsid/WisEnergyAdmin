@@ -49,11 +49,10 @@ function Sidebar({ collapsed, onCollapse, activePath }) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    console.log("ASDSA");
-
     localStorage.removeItem("user");
     localStorage.removeItem("token");
-    navigate("/");
+    localStorage.removeItem("adminKey"); // clear AdminGate access key
+    navigate("/w1s3n3r9y-p0rt4l"); // redirect to secret admin login
   };
 
   return (
@@ -112,7 +111,11 @@ function Sidebar({ collapsed, onCollapse, activePath }) {
       {/* Log Out */}
       <div className="p-4 border-t-2 border-t-gray-300 mt-auto">
         <button
-          onClick={handleLogout}
+          onClick={() => {
+            if (window.confirm("Are you sure you want to log out?")) {
+              handleLogout();
+            }
+          }}
           className={`flex items-center gap-2 text-[#F44336] font-medium text-sm hover:underline ${
             collapsed ? "justify-center w-full" : ""
           }`}

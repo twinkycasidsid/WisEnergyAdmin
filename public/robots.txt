@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /_3b7c4a-admin-access
+Disallow: /dashboard
+Disallow: /devices
+Disallow: /exports
