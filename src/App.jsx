@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import Login from "./components/Login";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import { SearchProvider } from "./components/SearchContext";
@@ -10,10 +11,33 @@ import ProtectedRoute from "./components/ProtectedRoutes";
 import LandingPage from "./components/layout/LandingPage"; // 👈 optional public page (marketing site)
 import AdminGate from "./components/layout/AdminGate";
 
-function App() {
+// ---- Inner component to handle dynamic title ----
+function TitleManager() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const titles = {
+      "/": "Login",
+      "/forgot-password": "Forgot Password",
+      "/code-verification": "Code Verification",
+      "/reset-password": "Reset Password",
+      "/reset-success": "Password Reset Success",
+    };
+
+    const current = titles[location.pathname] || "Dashboard";
+    document.title = `${current} | WisEnergy`;
+  }, [location.pathname]);
+
+  return null; // doesn’t render anything
+}
+
+export default function App() {
   return (
     <SearchProvider>
       <Router>
+        {/* ⬇ Add here so it listens to route changes */}
+        <TitleManager />
+
         <Routes>
           {/* Public landing page */}
           <Route path="/" element={<LandingPage />} />
@@ -45,5 +69,3 @@ function App() {
     </SearchProvider>
   );
 }
-
-export default App;

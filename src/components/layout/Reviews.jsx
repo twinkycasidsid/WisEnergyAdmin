@@ -5,6 +5,10 @@ import { useSearch } from "../SearchContext";
 
 function Reviews() {
   const { searchQuery } = useSearch();
+  useEffect(() => {
+    document.title = "Reviews | WisEnergy";
+  }, []);
+
   const [reviews, setReviews] = useState([]);
   const [filteredReviews, setFilteredReviews] = useState([]);
   const [ratingFilter, setRatingFilter] = useState("");
@@ -189,11 +193,10 @@ function Reviews() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
-              className={`px-3 py-1 border rounded ${
-                currentPage === 1
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-3 py-1 border rounded ${currentPage === 1
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:bg-gray-100"
+                }`}
             >
               &lt;
             </button>
@@ -205,11 +208,10 @@ function Reviews() {
                 setCurrentPage((p) => (p < totalPages ? p + 1 : p))
               }
               disabled={currentPage === totalPages || totalPages === 0}
-              className={`px-3 py-1 border rounded ${
-                currentPage === totalPages || totalPages === 0
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-3 py-1 border rounded ${currentPage === totalPages || totalPages === 0
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:bg-gray-100"
+                }`}
             >
               &gt;
             </button>

@@ -194,3 +194,63 @@ export const deleteRate = async (city, year, month) => {
     };
   }
 };
+
+
+export const fetchAllSubscriptions = async () => {
+  try {
+    const response = await api.get("/subscriptions");
+    return { success: true, data: response.data.subscriptions };
+  } catch (error) {
+    console.error("Error fetching subscriptions:", error);
+    return {
+      success: false,
+      message:
+        error.response?.data?.detail || "Failed to fetch subscriptions.",
+    };
+  }
+};
+
+// 🟡 Get one subscription by user_id
+export const fetchSubscriptionByUser = async (userId) => {
+  try {
+    const response = await api.get(`/subscriptions/${userId}`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Error fetching subscription:", error);
+    return {
+      success: false,
+      message:
+        error.response?.data?.detail || "Failed to fetch subscription details.",
+    };
+  }
+};
+
+// 🟣 Verify subscription manually (Admin)
+export const verifySubscription = async (userId) => {
+  try {
+    const response = await api.patch(`/subscriptions/${userId}/verify`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Error verifying subscription:", error);
+    return {
+      success: false,
+      message:
+        error.response?.data?.detail || "Failed to verify subscription.",
+    };
+  }
+};
+
+// 🔴 Cancel subscription (Admin)
+export const cancelSubscription = async (userId) => {
+  try {
+    const response = await api.patch(`/subscriptions/${userId}/cancel`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Error canceling subscription:", error);
+    return {
+      success: false,
+      message:
+        error.response?.data?.detail || "Failed to cancel subscription.",
+    };
+  }
+};

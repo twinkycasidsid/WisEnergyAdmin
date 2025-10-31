@@ -8,6 +8,11 @@ import { useSearch } from "../SearchContext";
 
 function Feedback() {
   const { searchQuery } = useSearch();
+
+  useEffect(() => {
+    document.title = "Feedbacks | WisEnergy";
+  }, []);
+
   const [feedback, setFeedback] = useState([]);
   const [filteredFeedback, setFilteredFeedback] = useState([]);
   const [typeFilter, setTypeFilter] = useState("");
@@ -120,10 +125,10 @@ function Feedback() {
         prev.map((f) =>
           f.id === id
             ? {
-                ...f,
-                status: newStatus,
-                date_modified: new Date().toISOString().split("T")[0],
-              }
+              ...f,
+              status: newStatus,
+              date_modified: new Date().toISOString().split("T")[0],
+            }
             : f
         )
       );
@@ -285,9 +290,8 @@ function Feedback() {
                           onChange={(e) =>
                             handleStatusChange(f.id, e.target.value)
                           }
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            statusColors[f.status]
-                          }`}
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[f.status]
+                            }`}
                           disabled={!isStatusEditable}
                         >
                           {allowedStatuses.map((status) => (
@@ -363,11 +367,10 @@ function Feedback() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
-              className={`px-3 py-1 border rounded ${
-                currentPage === 1
+              className={`px-3 py-1 border rounded ${currentPage === 1
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:bg-gray-100"
-              }`}
+                }`}
             >
               &lt;
             </button>
@@ -379,11 +382,10 @@ function Feedback() {
                 setCurrentPage((p) => (p < totalPages ? p + 1 : p))
               }
               disabled={currentPage === totalPages || totalPages === 0}
-              className={`px-3 py-1 border rounded ${
-                currentPage === totalPages || totalPages === 0
+              className={`px-3 py-1 border rounded ${currentPage === totalPages || totalPages === 0
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:bg-gray-100"
-              }`}
+                }`}
             >
               &gt;
             </button>

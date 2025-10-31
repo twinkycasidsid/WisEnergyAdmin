@@ -11,7 +11,9 @@ import {
 
 function Rates() {
   const { searchQuery } = useSearch();
-
+  useEffect(() => {
+    document.title = "Rates | WisEnergy";
+  }, []);
   const [showRateModal, setShowRateModal] = useState(false);
   const [editRate, setEditRate] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);

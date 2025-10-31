@@ -11,6 +11,11 @@ import ConfirmModal from "./ConfirmModal";
 
 function Users() {
   const { searchQuery } = useSearch();
+
+  useEffect(() => {
+    document.title = "Users | WisEnergy";
+  }, []);
+
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
   const [editUser, setEditUser] = useState(null);
@@ -370,8 +375,8 @@ function Users() {
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                 disabled={currentPage === 1}
                 className={`px-3 py-1 border rounded ${currentPage === 1
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:bg-gray-100"
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-100"
                   }`}
               >
                 &lt;
@@ -385,8 +390,8 @@ function Users() {
                 }
                 disabled={currentPage === totalPages || totalPages === 0}
                 className={`px-3 py-1 border rounded ${currentPage === totalPages || totalPages === 0
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:bg-gray-100"
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-100"
                   }`}
               >
                 &gt;
