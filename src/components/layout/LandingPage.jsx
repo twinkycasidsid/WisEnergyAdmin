@@ -228,6 +228,11 @@ export default function LandingPage() {
               img: "/Darin.png",
             },
             {
+              name: "Twinky Casidsid",
+              role: "Project Manager",
+              img: "/Twinky.png",
+            },
+            {
               name: "Jholmer L. Damayo",
               role: "Tester",
               img: "/Jholmer.png",
@@ -236,11 +241,6 @@ export default function LandingPage() {
               name: "Raily D. Sungahid",
               role: "Hipster",
               img: "/Raily.png",
-            },
-            {
-              name: "Twinky Casidsid",
-              role: "Project Manager",
-              img: "/Twinky.png",
             },
           ].map((member, i) => (
             <motion.div
